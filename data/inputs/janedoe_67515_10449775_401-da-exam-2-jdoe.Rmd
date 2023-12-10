@@ -1,0 +1,490 @@
+---
+title: "36-401 DA Exam 2"
+author: "Jane Doe"
+date: "November 17, 2023"
+output: pdf_document
+fontsize: 12pt
+geometry:  margin = 1 in
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r setup, include = FALSE}
+# By default, do not include R source code in the PDF. We do not want to see
+# code, only your text and figures.
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+```{r, include=FALSE}
+library(car)
+library(carData)
+library(effects)
+library(alr4)
+
+library(ggplot2)
+library(dplyr)
+library(broom)
+library(ggpubr)
+library(modelsummary)
+library(patchwork)
+```
+
+```{r, include=FALSE}
+head(Rateprof)
+
+#DATA = Rateprof
+#quality = response var
+#gender, pepper (attractiveness), easiness, discipline = explanatory variables
+```
+
+
+# Introduction
+
+Many universities and institutions as well as third party websites collect data about 
+faculty performance from the student's perspective. This takes the form of rating instructors
+on things like quality, easiness, clarity, helpfulness, and even attractiveness. 
+These factors are not with out bias though. Prior research and data has indicated
+that a student rating can be influenced by the easiness of a class, the gender of 
+the instructor, the discipline of the class, and if the student finds the instructor
+attractive or not. 
+
+This report will aim to investigate these biases to test the validity in these student 
+ratings and whether inflation or deflation may occur due to some of these variables.
+We will look if there is evidence for an association between the quality rating of a 
+faculty member and their corresponding class easiness rating, gender, discipline, and 
+attractiveness. Also, we will see if the easiness/quality relationship is further
+changed by the gender and/or discipline of the instructor. 
+
+In the end, we used a multiple linear regression model as well as partial F and T testing
+and found a positive association between quality and easiness, male teachers, and attractive
+to the student teachers which is consistent with the worries of the Vice Provost. And, based
+on evidence of how the data was collected, concluded a non-causal relationship. So these 
+student evaluations can definitely still have helpful information when making promotional 
+descisions but do include biases that should be accounted for.
+
+# Exploratory Data Analysis & Data Summary
+
+This data set contains information from 366 ratings of professors at a large, public university.
+The Vice Provost is interested in using these student ratings from a popular website to help
+determine if the results should be used to influence promotions. The ratings are voluntary and are only from
+students who use this website not the entire student body. All professors included in the data
+set also had at least 10 student ratings. The study collected many variables but for now, 
+we will focus on the five outlined below. 
+
+* **quality**: Average Quality Rating, between 1 (worst) to 5 (best), of the instructor
+* **gender**: Instructor's gender, male = 1 or female = 0 (baseline) 
+* **pepper**: A factor (yes = 1/no = 0) variable measuring attractive or not for the instructor
+* **easiness**: Average Easiness Rating, between 1 (worst) to 5 (best), of the instructor
+* **dicipline**: A factor variable measuring which discipline the instructor teaches in.
+    + `Hum` = humanities (baseline), `SocSci` = social sciences, `STEM` = science, technology, 
+        engineering, and math, `Pre-Prof` = professional training
+
+### Data Visualization
+
+First, we will examine these variables on their own starting with the response, average quality rating. 
+
+```{r, message = FALSE, fig.width=4, fig.height=3, fig.cap="Histogram of Average Quality Rating."}
+ggplot(Rateprof, aes(x = quality)) +
+  geom_histogram() +
+  labs(x = "Average Quality Rating, between 1 (worst) to 5 (best)",
+       y = "Count",
+       title = "Quality Histogram")
+```
+
+The histogram of quality rating shown in Figure 1 appears slightly skewed left,
+unimodal, and centered around 3.5. It has a standard deviation of 0.84 and most
+of the data points appear to be above 3. 
+
+```{r}
+gender.eda = ggplot(Rateprof, aes(x = gender)) +
+  geom_bar() +
+  labs(x = "Gender",
+       y = "Count",
+       title = "Gender Barchart")
+
+pepper.eda = ggplot(Rateprof, aes(x = pepper)) +
+  geom_bar() +
+  labs(x = "Attractive (yes or no)",
+       y = "Count",
+       title = "Atractiveness Barchart")
+
+discipline.eda = ggplot(Rateprof, aes(x = discipline)) +
+  geom_bar() +
+  labs(x = "Discipline",
+       y = "Count",
+       title = "Discipline Barchart")
+```
+
+```{r, message = FALSE, fig.width=5, fig.height=4, fig.cap="Barcharts of Categorical Predictors"}
+(gender.eda + pepper.eda)/discipline.eda
+```
+
+As seen in Figure 2, the barchart shows that there are more male than female instructors 
+in the data set. This differs by about 50 people which is not that dramatic. By contrast, 
+many more instructors were rated as not attractive than attractive, a difference of roughly 
+250 people. There is also some variation of instructors across the different disciplines.
+Social sciences and pre-prof are both about the same and then STEM and humanities have more
+data points by around 40 and 90 people respectively. 
+
+```{r, message = FALSE, fig.width=4.5, fig.height=3, fig.cap="Histogram of Average Easiness Rating."}
+ggplot(Rateprof, aes(x = easiness)) +
+  geom_histogram() +
+  labs(x = "Average Easiness Rating, between 1 (worst) to 5 (best)",
+       y = "Count",
+       title = "Easiness Histogram")
+```
+
+The histogram of easiness rating shown in Figure 3 is very symmetrical, unimodal, 
+and Normal-like. It is centered around 3 with a standard deviation of 0.78. Most
+data points seem concentrated between 2 and 4.
+
+After looking at all five variables on their own, there does not appear to be any 
+problems, outliers, or strong skews that stand out as of now. Next, we will examine
+scatter or box plots of each explanatory variables with the response variable `quality`.
+
+```{r}
+g.q = ggplot(Rateprof, aes(y = quality, x = gender)) +
+  geom_boxplot() +
+  labs(y = " ",
+       x = "Gender",
+       title = "Quality vs. Gender")
+
+a.q = ggplot(Rateprof, aes(y = quality, x = pepper)) +
+  geom_boxplot() +
+  labs(y = " ",
+       x = "Attractiveness",
+       title = "Quality vs. Attractiveness")
+
+d.q = ggplot(Rateprof, aes(y = quality, x = discipline)) +
+  geom_boxplot() +
+  labs(y = " ",
+       x = "Discipline",
+       title = "Quality vs. Discipline")
+```
+
+
+```{r, message = FALSE, fig.width=4.8, fig.height=3.75, fig.cap="Boxplots of Quality vs. Categorical Predictors. Y axis constant for all: Average Quality Rating, between 1 (worst) to 5 (best)"}
+(g.q + a.q)/d.q
+```
+
+In Figure 4, we can see that the median quality rating for males is slightly higher than
+that for female instructors but otherwise not much about the spread is different. The 
+median of attractive instructors is about a whole rating unit higher for that of non-attractive
+instructors. This difference is also influenced by the large different in data points across
+the two factor levels mentioned above. There are outliers for the yes category. Across disciplines, 
+the spreads and boxes overall all look pretty similar with the median for social sciences slightly higher
+than the rest and no outliers observed. 
+
+```{r, message = FALSE, fig.width=4.1, fig.height=4, fig.cap="Scatterplot of Quality vs. Easiness."}
+ggplot(Rateprof, aes(y = quality, x = easiness)) +
+  geom_point() +
+  labs(y = "Average Quality Rating, between 1 (worst) to 5 (best)",
+       x = "Average Easiness Rating, between 1 (worst) to 5 (best)",
+       title = "Quality vs. Easiness")
+```
+
+The scatter plot for easiness and quality shows a strong positive linear relationship 
+as seen in Figure 5. This makes sense logically since college students are likely
+to rate a professor they found easier as better.
+
+From our data visualization, we can say that there is a strong positive relationship between 
+easiness rating and quality rating. The median of quality rating across gender and discipline
+did not appear to change much at this level but we will continue to explore those relationships 
+in the rest of this report. The one categorical variable that did show a difference in average 
+quality rating was attractiveness. 
+
+As an aside, investigation was made into looking at scatter plots of quality vs. easiness
+where the points were color coded by gender, discipline, and pepper, separately. Visually, 
+discipline seemed random and not correlated, gender seemed possibly to make a difference with male
+data points tending to be above female data points but no difference in slope, and pepper did look
+to have very different best fit lines both slope and intercept. 
+
+# Methods
+
+Since we are interested in seeing how our four predictor variables influence quality rating
+and the Vice Provost suspects that the relationship between easiness and quality might be influenced 
+by our categorical predictors, specifically gender and discipline, we will first try building a more
+full model. This will involve all four of our predictor variables as well as interaction terms between
+easiness and the rest due to the Vice Provost's specific interest. This specific full regression
+model equation will be as follows: 
+
+\begin{gather*}
+quality =\beta_0 + gender\beta_1 + pepper\beta_2 + easiness\beta_3 + disciplineSocSci\beta_4 + disciplineSTEM\beta_5\\
++ disciplinePre-Prof\beta_6 + gender(easiness)\beta_7 + pepper(easiness)\beta_8 + disciplineSocSci(easiness)\beta_9\\
++ disciplineSTEM(easiness)\beta_{10} + disciplinePre-Prof(easiness)\beta_{11} + \epsilon_i
+\end{gather*}
+
+As a reminder, `gender` is coded as 0 = female and 1 = male, `pepper` is coded as 0 = no and 1 = yes, 
+and `discipline` uses humanities as the baseline.
+
+```{r}
+in2.model = lm(quality~gender + pepper + easiness + discipline + 
+                 easiness*gender + easiness*pepper + easiness*discipline, data = Rateprof)
+#summary(in2.model)
+```
+
+Before going any further with this model, we need to check diagnostics to have confidence 
+in the validity of the numbers and conclusions we can make from it. First,
+we will examine the model to check for influential points via Cook's Distance. 
+
+```{r, results='hide', include = FALSE}
+#cook's distance
+cookd.in2 = cooks.distance(in2.model)
+cookd.in2
+which.max(cookd.in2)
+
+head(augment(in2.model))
+
+in2.plot = augment(in2.model) %>%
+  ggplot(aes(x = easiness, y = .cooksd)) +
+  geom_point() + 
+  labs(y = "Cook's Distance",
+       x = "Average Easiness Rating, between 1 (worst) to 5 (best)",
+       title = "Cook's Distance vs. Easiness")
+#seems fine
+
+sort(pf(cookd.in2,12,354), decreasing = TRUE) #none of the points have cooks distances above the 50th percentile of f distribution with df q=11 and n-q so none are influential enough to remove 
+curve(df(x, df1=12, df2=354))
+```
+
+```{r, message = FALSE, fig.width=4.5, fig.height=3, fig.cap="Plot of the Cook's Distance for the Model."}
+in2.plot
+```
+
+Figure 6 displays the Cook's Distances for each data point in the model as a function
+of easiness rating. Most of these values are quite small with point, 280, being the 
+most influential with a Cook's Distance of 0.0301. To evaluate, though, if a Cook's 
+distance value is too large and thus removal should be considered, one can compare
+the values to the quantiles of the F distribution. In this case, none of the points
+have Cook's Distances above the 50th percentile of a F distribution with q = 12 and 
+n-q = 354 degrees of freedom, so are not of concern. 
+
+
+Next, we will examine the residuals of the model to check the multiple linear regression 
+requirements that the mean of the residuals is zero and that the spread is constant.
+Figure 7 displays the residual plots or differences between predicted quality score and true 
+quality score for each data point as a function of easiness, gender, discipline, and attractiveness.
+This plot shows that the constant spread and mean of zero are mostly justified. The data 
+points do seem to be evenly spread above and below the y = 0 line and there is no triangular
+pattern to the plot which would indicate non-constant variance, which is good, for the 
+quantitative predictor. The boxplots also do not show much concern since the medians are
+around zero and there is not much overall variation. The only one that stands out 
+is attractiveness but the difference in spread is most likely due to the large difference 
+in number of data points across the two levels of the pepper variable. 
+
+```{r}
+in2.plotr.e = augment(in2.model) %>%
+  ggplot(aes(x = `easiness`, y = .resid)) +
+  geom_point() +
+  labs(y = "Residuals",
+       x = "Easiness Rating")
+
+in2.plotr.g = augment(in2.model) %>%
+  ggplot(aes(x = `gender`, y = .resid)) +
+  geom_boxplot() +
+  labs(y = "Residuals",
+       x = "Gender")
+
+in2.plotr.p = augment(in2.model) %>%
+  ggplot(aes(x = `pepper`, y = .resid)) +
+  geom_boxplot() +
+  labs(y = "Residuals",
+       x = "Atractive (yes/no)")
+
+in2.plotr.d = augment(in2.model) %>%
+  ggplot(aes(x = `discipline`, y = .resid)) +
+  geom_boxplot() +
+  labs(y = "Residuals",
+       x = "Discipline")
+```
+
+```{r}
+residualplots = ggarrange(in2.plotr.e, in2.plotr.g, in2.plotr.d, in2.plotr.p, ncol = 2, nrow = 2)
+```
+
+```{r, message = FALSE, fig.width=4.5, fig.height=3, fig.cap="Residuals Plots for all Predictor Variables of the Model."}
+residualplots
+```
+
+The next diagnostic we will look at is a QQ plot to check if the residuals appear 
+to be Normally distributed.
+
+```{r}
+in2.plotqq =
+  ggplot(augment(in2.model), aes(sample = .resid)) +
+  geom_qq() +
+  geom_qq_line()+
+  labs(y = "Standardized Residuals",
+       x = "Theoretical Quantiles",
+       title = "Normal Q-Q Plot")
+```
+
+```{r, message = FALSE, fig.width=4, fig.height=3, fig.cap="QQ Plot for the Model."}
+in2.plotqq
+```
+
+Figure 8 shows the QQ plot for our model. There is slight variation from a line 
+especially at the high positive theoretical quantiles but otherwise the normality
+assumption of the residuals is met. As an aside, the sample size is also so large 
+that the distributions of the beta estimates will be approximately Normal regardless 
+of the distribution of the residuals so we can trust hypothesis tests and confidence 
+intervals performed on these estimates. 
+
+Linearity was also proven between easiness and quality in the EDA section so assumptions 
+have been met for this model and any subsequent nested model such that we can perform
+hypothesis tests and confidence intervals in regard to estimated coefficients that might 
+be used to predict teaching quality rating. Since the Vice Provost is interested in 
+finding if the relationship between quality and easiness is influenced by gender or 
+discipline, we want to test whether the beta coefficients for the interaction terms, which
+represent these relationships, are significant. Instead of testing these five terms
+separately which would increase the odds of hypothesis rejection error, we want to perform 
+a partial F test between the above model and a reduced model which would look like the 
+following below. This examines whether the interaction terms add to the model in terms of a better
+prediction method for quality.
+
+\begin{gather*}
+quality =\beta_0 + gender\beta_1 + pepper\beta_2 + easiness\beta_3 + disciplineSocSci\beta_4\\
++ disciplineSTEM\beta_5+ disciplinePre-Prof\beta_6 + \epsilon_i
+\end{gather*}
+
+Partial F Tests: 
+
+* Ho: $\beta_7$ = $\beta_8$ = $\beta_9$ = $\beta_{10}$ = $\beta_{11}$ = 0
+* Ha: at least one of the above betas is not zero
+* Test Statistic: F ~ F(5, n-12) where F = (($RSS_{red}$ - $RSS_{rull}$)/k)/($RSS_{rull}$/(n-q))
+* Rejection Region: F > $F_{5, n-12}$ where n = 366 and when $\alpha$ = 0.05
+
+```{r}
+plain.model = lm(quality~gender + pepper + easiness + discipline, data = Rateprof)
+```
+
+Based on the results of this test, one can determine which model to use to test
+associations and learn which are significant to answer the question asked of this report. 
+If the partial F test comes back significant, the interaction terms should be included,
+otherwise the reduced model does a sufficient job of predicting quality rating. Those
+tests will be T tests and confidence intervals for the estimate produced by the 
+linear regression model. In order to perform these tests and confidence intervals, 
+the linear regression assumptions must be met which we proved above and the distribution 
+of $\hat{\beta_i}$ must be approximately Normal which we know is the case due to the 
+large sample size. The hypothesis test will be set up in the following way.
+
+T Tests: 
+
+* Ho: $\beta_i$ = 0
+* Ha: $\beta_i$ $\not$= 0
+* Test Statistic: T ~ t(n-q) where T = $\hat{\beta_i}$ / SE($\hat{\beta_i}$) 
+* Rejection Region: T > $t_{1-\alpha/2, n-q}$ OR T < -$t_{1-\alpha/2, n-q}$ where $\alpha$ = 0.05 and n = 366
+
+Confidence Intervals on Betas: $\hat{\beta_i}$ +/- $t_{1-\alpha/2, n-q}$SE($\hat{\beta_i}$)
+
+One final thing to check on our model is for collinearity between the predictor variables.
+This was done and all the variance inflation factors (VIFs) were under 1.2 so are not of 
+concern. 
+
+```{r, results = 'hide'}
+car::vif(plain.model)
+```
+
+# Results
+
+First, let us examine the results of the partial F test using ANOVA. 
+
+```{r, results='hide'}
+anova(in2.model, plain.model)
+```
+
+Model     Res.Df    RSS       F        p value
+--------  --------  --------  --------  --------
+Full       354       152.17
+Reduced    359       154.60    1.1276    0.3453
+
+Table 1: Summary of partial F test ANOVA. 
+
+We have insufficient evidence to conclude that the interaction terms between easiness 
+and the categorical predictor variables, pepper, gender, and discipline have different
+average quality ratings after controlling the rest of the predictors 
+(F(5, 354) = 1.1276, p = 0.3453.) So there is not evidence that the interaction terms 
+improve the model of predicting quality and thus we will move forward with our analysis
+using the reduced model. This indicates that the relationship between quality and easiness
+might not depend on gender and/or discipline. Another note about the two models is to
+look at the AIC values which can be found at the bottom of Table 2. The reduced model
+has a smaller AIC value meaning it is a better fit for the data and better predictor of 
+our response, quality. 
+
+We can also look at the summary results of the two models but particularly focusing
+on the plain model. 
+
+```{r}
+modelsummary(list("Full Model" = in2.model, "Reduced Model" = plain.model), 
+             statistic = c("conf.int", "p.value"),
+             gof_map = c("r.squared","nobs", "aic"))
+```
+
+The first thing that stands out from Table 2 are how almost all the interaction term 
+coefficient confidence intervals span zero indicating that we can not say whether
+any of them are significantly different from zero with 95% confidence. This aligns with 
+the results of the partial F test. 
+
+We will now look at the significant predictors of quality rating from the reduced model 
+and quantify by how much these variables influence quality rating. These will all be the
+results of T tests described in the methods section and values coming from Table 2. 
+
+* Gender: There is sufficient evidence that male teachers have higher quality ratings
+    than female teachers by 0.145 (95% CI[0.005, 0.285]) quality points on average, 
+    holding all else constant (t(359) = 2.035, p = 0.0426). 
+* Attractiveness: There is sufficient evidence that voted attractive teachers have  
+    higher quality ratings than non-attractive professors by 0.655 (95% CI [0.444, 0.867])
+    quality points on average, holding all else constant (t(359) = 6.101, p = 2.72e-09).
+* Easiness: There is sufficient evidence that for every one unit increase in easiness
+    rating, quality rating increases by 0.568 (95% CI [0.477, 0.660]) quality points on average, 
+    for female and non-attractive rated instructors, holding all else constant (t(359) = 12.200, p < 2e-16).
+* Discipline: There is not sufficient evidence that different disciplines play a role
+    in predicting average quality rating of a professor. 
+    
+Table 2: Predicting quality rating, with and without interaction terms for easiness and 
+the rest of the predictor variables. Values in bracket is the 95% confidence interval and
+in parentheses is the p value. 
+ 
+We will also address the Vice Provost's specific guess that the relationship between easiness 
+and quality rating may depend on gender and discipline. The partial F test results from above
+indicated that no interaction term, which would test these key relationships, was significant
+in predicting quality. This indicates that gender and discipline are not influencing the easiness
+quality relationship. This is further evident by the high p values of the individual interaction
+terms in Table 2. The only categorical variable that did seem to influence the easiness
+quality relationship was attractiveness. There is sufficient evidence that the slope in the 
+relationship between easiness and quality is 0.365 units lower for yes attractive instructors
+than no attractive instructors on average, holding all else constant (t(354) = -2.091, p = 0.037).
+This follows with the multi-variable EDA mentioned earlier. So we recommend that the Vice Provost 
+accounts for the gender, attractiveness, and easiness biases when making promotional
+decisions and could maybe investigate the attractiveness/easiness relationship a bit
+more and factor that in as well. 
+
+# Conclusion
+
+As a result of the data analysis and modeling performed, there is evidence gender, 
+easiness, and attractiveness influence a quality rating of an instructor which are biases
+the Vice Provost at USND at Hoople is trying to examine for promotional purposes.
+We found through performing a multiple linear regression model that association 
+between quality and easiness is a positive one and that a one unit higher easiness rating
+can bring up an instructors overall quality rating by over 0.5 points. People also tend
+to rate male professors more highly than female professors. Likewise, people tend
+to rate instructors they find attractive more highly than unattractive ones. Quality
+rating did not seem to change much across discipline nor did the quality easiness 
+relationship seem to be influenced by gender nor discipline as the Vice Provost might 
+have originally suspected. There might have been more ways to look at how the predictor
+variables affect each other like if there is a gender imbalance across disciplines, 
+how does that change the results. But, the initial data visualization did not dictate
+that for this report. The same goes for the many other variables included in the data set
+which could easily influence quality as well as our predictors. Also, this data set 
+only provided information from students who chose to post here and thus causal conclusions
+can not be made just the presence of associations. While this data set nor the modeling 
+was perfect, we were able to confidently meet the assumptions for modeling and testing 
+and draw conclusions about which variables are associated with average quality rating of
+an instructor from this university and the popular rating website. So while evaluations
+still hold important information about an instructor from the student perspective and
+should be examined when looking at promotions of faculty, they should be taken with 
+a grain of salt because can by biased by the gender and attractiveness of the instructor
+and the easiness of the class they taught.
+

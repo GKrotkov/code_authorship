@@ -1,0 +1,262 @@
+---
+title: "Data Visualization Final: Honeywell Pitch"
+author: "Devin Basley, Sophia Gan, Gabriel Krotkov"
+date: "2023-10-12"
+output: pdf_document
+---
+
+```{r setup, echo = FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, 
+                      warning = FALSE, error = FALSE)
+```
+
+```{r}
+load("data.rda")
+library(tidyverse)
+library(hexbin)
+library(scales)
+library(factoextra)
+library(tidyquant)
+```
+
+# Abstract
+
+We aim to identify and understand the potential anchor clients within various industry sectors in the United States. We use data-driven strategies to identify companies with market influence and a need for ClAIrvoyant's services using stock market data from Yahoo Finance and LinkedIn data listed over the course of 2 days from Kaggle. We use PCA to identify the variables most associated with a high hiring need in our dataset and investigate those variables to identify high quality potential companies. We find that the company Honeywell, which was founded in 1906, has a comparatively high hiring need while maintaining a healthy and reputable reputation in its sector, while at the same time, is a global company that operates across various sectors, including automation, aerospace, building technologies, performance materials and technologies, and safety and productivity solutions. With the company’s long history, diverse industry sector, and its high rank in hiring needs, this company fits all the criteria to be an excellent anchor client for ClAIrvoyant.
+
+# Introduction
+
+As a start-up company, ClAIrvoyant is a company that has the product for matching resumes for the company to each white collar job. The goal is to target anchor clients in various industries in order to reach a better price in the future for market value. In order to decide which sector to focus on, understanding the market’s needs and future trends will be important for this process so that we can develop further strategies for the company. By targeting the company Honeywell as an anchor client, clAIrvoyant will expand its book of business. We will be explaining the reasons for choosing this company, the future trend and opportunities based on the data we have. 
+
+Honeywell is a publicly traded multinational business, a Fortune 500 (and regularly Fortune 100) company, with major focuses in aerospace manufacturing, automation, and energy. Honeywell does not have a talent recruitment partner and is not listed on any of ClAIrvoyant's competitor's websites, indicating that they are a reasonable anchor client candidate. 
+
+We use data collected on LinkedIn in the year 2023, with over 15,000+ job postings listed over the course of 2 days and stock price data from Yahoo Finance. By analyzing data collected, this analysis will investigate whether Honeywell is an appropriate anchor client. We will focus on these research questions to evaluate Honeywell as an anchor client.
+
+- Does Honeywell employ the type of employee (white collar work) that ClAIrvoyant can provide assistance with, and in enough volume to require our services?
+- Does Honeywell show traits of a "bellweather" company? (Growth superior to competitors, influence in the workplace, longevity?)
+- What variables in our dataset are associated with a high number of LinkedIn job postings? Does Honeywell stand out in the variables we have identified as key associates of job postings?
+
+# Data
+
+## Dataset
+
+We used the "LinkedIn Jobs Postings - 2023" dataset from Kaggle, available at this [link](https://www.kaggle.com/datasets/arshkon/linkedin-job-postings). We reformatted and condensed the files available from Kaggle into a dataset with the following variables. Some variables included in the dataset are not reported because they are irrelevant to our analysis. The condensed dataset contained $5953$ rows, representing 5953 unique companies posting job openings to LinkedIn 
+
+Variable | Explanation
+-----------------|-----------------
+`company_id`     | Unique identifier for each company
+`company_name`   | Name of the company
+`company_description` | Short text description of the company
+`company_size`   | Company grouping based on number of employees (0 Smallest - 7 Largest)
+`employees`      | The number of employees at the company
+`followers`      | Number of company followers on LinkedIn
+`industry`       | Broad industry the company is in
+`n_postings`     | Number of LinkedIn job postings from the company over 2 days. 
+`mean_salary_max`| The average of the high endpoint of salary ranges that the company posts on LinkedIn
+`mean_salary_min`| The average of the low range of salary ranges that the company posts on LinkedIn
+`yearly_pct`     | Percentage of job postings with a yearly pay structure
+`monthly_pct`    | Percentage of job postings with a monthly pay structure
+`hourly_pct`     | Percentage of job postings with an hourly pay structure
+`fulltime_pct`   | Percentage of job postings that are full time 
+`parttime_pct`   | Percentage of job postings that are part time
+
+\newpage
+
+## Descriptive EDA
+
+One key feature of a high quality anchor client for ClAIrvoyant is that they regularly hire workers whose hiring requires a resume. The primary variable of interest to answer this is `n_postings`, the number of LinkedIn job postings in this dataset. A high quality anchor client will be posting a large number of jobs on LinkedIn, for which they could use the help of our resume matching service. To focus on the most relevant companies, we will restrict the companies in this plot to companies with more than 10 LinkedIn job postings in the dataset - this focuses on the top 5 percent of job posters in the dataset.
+
+```{r n_postings distribution}
+ggplot(companies[companies$n_postings > 10, ], 
+       aes(x = n_postings, color = company_size)) +
+    geom_histogram(bins = 35, fill = "deepskyblue1", color = "black") + 
+    labs(title = "Honeywell has a high volume of job postings", 
+         subtitle = "Even among the top 5% of LinkedIn posters",
+         x = "Number of Postings", 
+         y = "Frequency", 
+         tag = "Figure 1") + 
+    geom_vline(xintercept = 46, color = "red") + 
+    annotate("text", x = 42, y = 20, label="Honeywell", angle = 90) + 
+    theme_bw() + 
+    theme(panel.grid = element_blank())
+
+```
+
+In this area Honeywell clearly has a high need. In Figure 1 we can see Honeywell's position firmly in the skewed-right tail of the distribution, considerably higher than the major mode of the data, even among the top 5% of LinkedIn job posters. This qualifies Honeywell as showing enough need for resume-parsing that they would welcome ClAIrvoyant's services.
+
+Another key expectation of a high quality anchor client is that they hire for white collar, high paying work. A company who does not need to look at resumes and carefully match them to jobs will not be interested in ClAIrvoyant's services. At a glance Honeywell does fit this criteria - their industry is Electrical and Electronic Manufacturing, with major subsidiaries in aviation and automation - all fields requiring large numbers of experts. To build evidence about whether Honeywell fits this criteria we can examine a plot (Figure 2) of the distribution of minimum salary of jobs postings and Honeywell's place in it. We chose minimum salary because we are mostly interested in the bulk of employees at a company (because we're selling a system to automate reading **lots** of resumes), and the minimum salary will be more reflective of this than the maximum salary. We also chose to only plot companies in the largest size category, because another key feature of a good anchor client is that they are large.
+
+```{r salary}
+ggplot(companies[companies$company_size %in% 7, ], 
+       aes(x = ifelse(mean_salary_min < 1000, NA,
+                      mean_salary_min))) + 
+    geom_histogram(bins = 20, fill = "deepskyblue1", color = "black") + 
+    geom_vline(xintercept = 124268.2, color = "red") + 
+    annotate("text", x = 120000, y = 25, label="Honeywell", angle = 90) + 
+    labs(title = "Honeywell's Salaries are Reflective of White Collar Work", 
+         subtitle = "Honeywell in red",
+         tag = "Figure 2",
+         x = "Minimum Salary (dollars)", y = "Count") + 
+    scale_x_continuous(labels = label_dollar()) + 
+    theme_bw() + 
+    theme(panel.grid = element_blank())
+```
+
+Looking at Figure 2 we can see Honeywell's minimum salary comes in meaningfully higher than the major mode of the data, at the low end of the higher second node. This indicates that the bulk of Honeywell's advertised hires from LinkedIn do fit our criteria of being high paying jobs, and likely to require resumes. 
+
+Another key feature of a good anchor client is that they regularly outperform their competition. To find an effective anchor client, we need a well respected "bellweather" company that others will seek to emulate. For better or worse, most decisionmakers in the corporate world are very sensitive to stock price and will make decisions based on it. To that end we'll plot Honeywell's stock price performance in comparison to other companies who we might have considered as an anchor client. 
+
+```{r stock price plot}
+# Stock Price for Booz Allen
+booz_allen <- tq_get(c("BAH"), get  = "stock.prices",
+                     from = "2015-01-01", to = "2023-10-01")
+
+# Stock Price for Verizon
+verizon <- tq_get(c("VZ"), get  = "stock.prices",
+                  from = "2015-01-01", to = "2023-10-01")
+
+
+# Stock price for Honeywell
+honeywell <- tq_get(c("HON"), get  = "stock.prices",
+                    from = "2015-01-01", to = "2023-10-01")
+
+
+# Stock Price for Apex Systems
+apex_systems <- tq_get(c("ASGN"), get  = "stock.prices",
+                       from = "2015-01-01", to = "2023-10-01")
+
+# Stock price for IBM
+ibm <- tq_get(c("IBM"), get  = "stock.prices",
+              from = "2015-01-01", to = "2023-10-01")
+
+# Stock Price for Oracle
+oracle <- tq_get(c("ORCL"), get  = "stock.prices",
+                 from = "2015-01-01", to = "2023-10-01")
+
+# Combine all Company Stock Prices into 1 data frame
+combine_stocks <- rbind(booz_allen, verizon, honeywell, 
+                        apex_systems, ibm, oracle)
+
+grouped_stocks <- combine_stocks %>%
+  filter(symbol != "HON")
+
+# Plot the daily closing stock price from Jan 1, 2015 to October 1, 2023
+combine_stocks %>%
+  filter(symbol != "HON") %>%
+  ggplot() +
+  geom_line(aes(x = date, y = close, group = symbol), 
+            alpha = 0.5, color = "gray") +
+  geom_line(data = filter(combine_stocks, symbol == "HON"), 
+            aes(x = date, y = close, color = symbol), alpha = 1) +
+  labs(x = "Date",
+       y = "Close Price of Stock",
+       title = "Honeywell Stock Outperforms Competitors from 2015-2023",
+       color = "Ticker Symbol",
+       tag = "Figure 3",
+       subtitle = "Includes Verizon, Oracle, 
+       Booz Allen Hamilton, IBM, Apex Systems") +
+  theme_bw() +
+  theme(panel.grid = element_blank())
+```
+
+As you can see in Figure 3, Honeywell outperforms other candidate anchor client companies in long term stock price growth. Stock price is not the end-all, be-all of marketplace influence, but it is a good representative of your long term success. Furthermore, Honeywell is a dividend stock, representative of growing and stable companies. This level of performance and shareholder confidence gives Honeywell an excellent start when it comes to measurable features a company can demonstrate.
+
+As outlined in the methods section, we identified the two major factors associated with a high number of LinkedIn job postings as the number of employees a company has, and the number of LinkedIn followers the company has. Following that, we would expect that a high quality anchor client would stand out both in the number of LinkedIn followers they have and in the number of employees they have. Intuitively, this makes sense: the number of followers a company has on LinkedIn is likely related to their investment in the platform and their overall pull in the employment market, and a simply larger company is one that is likely to need to fill more positions.
+
+To see whether Honeywell fits our high goals for an anchor client in these key variables, we made a scatterplot of those two identified variables. We chose to take the log of both variables because both variables have a heavily right-skewed distribution, and this makes it easier to see the data's shape. 
+
+```{r size and influence}
+ggplot(companies, aes(y = log(employees), 
+                      x = log(followers), 
+                      color = factor(company_id == 1344), 
+                      alpha = factor(company_id == 1344), 
+                      size = factor(company_id == 1344))) + 
+           geom_point() + 
+    labs(title = "Honeywell meets our size and influence expectations", 
+         subtitle = "Honeywell in red",
+         tag = "Figure 4",
+         x = "Log Employees", y = "Log LinkedIn Followers", 
+         color = "Company:", alpha = "Company:", size = "Company:") + 
+    scale_color_manual(values = c("grey", "red"), 
+                       labels = c("Other", "Honeywell")) + 
+    scale_alpha_manual(values = c(0.4, 1), 
+                       labels = c("Other", "Honeywell")) + 
+    scale_size_manual(values = c(1, 3), 
+                      labels = c("Other", "Honeywell")) + 
+    theme_bw() + 
+    theme(panel.grid = element_blank())
+
+```
+
+In both the number of employees and the number of LinkedIn followers, Honeywell stands out from the rest of the companies in our dataset. Figure 4 shows us that Honeywell is on the high end of both distributions and meets our expectations for a high quality anchor client in these areas.
+
+One reasonable concern with using LinkedIn followers as a proxy for industry influence could just be that the number of followers is just a function of the size of the company. Does Honeywell's number of followers hold up when compared to other large companies?
+
+```{r followers boxplots}
+# Followers Boxplot
+ggplot(companies[!is.na(companies$company_size), ], 
+       aes(x = factor(company_size), y = log(followers))) + 
+    geom_violin(fill = "deepskyblue1", scale = "width") +
+    geom_boxplot(fill = "deepskyblue4") + 
+    geom_hline(yintercept = 14.75, color = "red") +
+    annotate("text", x = 2, y = 14.25, label="Honeywell", 
+             angle = 90, size = 4) +
+    coord_flip() +
+    labs(x = "Company Size Category", y = "Log Linkedin Followers",
+         title = "Honeywell Has a Strong LinkedIn Presence",
+         subtitle = "Even Accounting for Size", tag = "Figure 5") +
+    theme_bw() + 
+    theme(panel.grid = element_blank())
+```
+
+As we can see in Figure 5, this is not true for Honeywell. Even when we break out the companies by their size category, Honeywell's LinkedIn followers are comfortably in the top quartile of the data of the highest size category. This builds evidence for Honeywell having a durable and disproportionately high LinkedIn presence. 
+
+## Interactive Dashboard
+
+We provide an interactive dashboard to examine additional features of the data at this link: 
+
+*https://gkrotkov.shinyapps.io/salary_interactive/*
+
+# Methods
+
+In order to establish which variables were associated with the number of LinkedIn postings a company had in the dataset, we performed PCA and plotted only the variables in Figure 6. We are interested primarily in the angle between the vectors for `n_postings` and the other variables - variables that are close in angle to `n_postings` are of high interest to us, and variables perpendicular to `n_postings` don't appear to have a strong relationship in our data to `n_postings`.
+
+```{r, pca}
+companies_quant <- companies[, c("employees", "followers", "n_postings", 
+                                 "mean_salary_max", "mean_salary_min", 
+                                 "fulltime_pct", "parttime_pct")]
+
+companies_pca <- prcomp(na.omit(companies_quant), 
+                        center = TRUE, scale = TRUE)
+
+fviz_pca_var(companies_pca, label = "var", labelsize = 4,
+             alpha.var = 0.5, col.var = "darkblue", repel = TRUE) + 
+    theme_bw() + 
+    labs(title = "Employees and Followers Vary with Postings", 
+         subtitle = "Other variables are nearly uncorrelated",
+         tag = "Figure 6") + 
+    theme(panel.grid = element_blank())
+```
+
+In our PCA Variables plot we can see that `n_postings` is closely related to `followers` and `employees`, making the two variables of the most interest for predicting the number of LinkedIn job postings over our dataset the number of LinkedIn followers the company has and the number of employees the company has. By comparison the other variables are nearly perpendicular to `n_postings`, and therefore are not helpfully related to `n_postings`. 
+
+# Results
+
+In Figure 1 we see a heavily right-skewed, unimodal distribution with a scattering of very high outliers. The line indicating Honeywell's position is firmly in the tail, indicating that very few companies in the dataset have a higher LinkedIn job posting volume in our dataset. This is especially true because the graph only shows companies with more than 10 LinkedIn job postings in our timeframe, which is fewer than 5% of companies in the dataset. This establishes that Honeywell has an extremely high job posting volume. 
+
+In Figure 2 we see the distribution of `mean_salary_min` has one dominant mode in the center and two minor modes to the left and right of the distribution, along with a few scattered outliers on the high end of the distribution. Honeywell falls in the lower section of the high minor node, indicating that their jobs in this dataset are reflective of high paying, white collar work, for which a resume matching service like the one we are offering would be valuable. This establishes that Honeywell isn't just hiring in volume in this dataset, but also hiring the type of worker that our service is appropriate for.
+
+In Figure 3 we see Honeywell's stock price performance since 2015 outperforming competitors with similar characteristics in terms of job volume and salary. This outperformance over a relatively long term indicates that Honeywell is well positioned to be an effective anchor client for ClAIrvoyant, as other companies might seek to emulate Honeywell's success with ClAIrvoyant's services.
+
+In Figure 4 we see that Honeywell performs highly both in the number of employees they hire and their follower count on LinkedIn. As established in the methods section, these two variables are closely related to the volume of LinkedIn job postings in this dataset, and having an extremely high value in both is encouraging for Honeywell's demand for LinkedIn jobs persisting over time. This builds evidence that Honeywell's high job demand is not just some fluke of the days that the data were sampled over coinciding with Honeywell's hiring cycle, or some other noisy variation.
+
+In Figure 5 we see the distribution of LinkedIn followers increase in a logarithmic fashion with company size, and even when accounting for size Honeywell's LinkedIn network is quite large. This adds credibility to the notion that Honeywell is a "bellweather" company whose actions are likely to influence other companies.
+
+In Figure 6 we see the PCA variables plot showing the relationship of the quantitative and complete variables in the dataset. The `n_postings` variable is closely aligned with the `employees` and `followers` variables, since all three arrows are tightly clustered and pointing in the same direction. On the other hand all the other variables appear to be orthogonal to the volume of LinkedIn job postings.
+
+# Discussion
+
+In this paper, we explored the Linkedin job postings to discover a fortune 500 company that can utilize Clairvoyant to improve their talent acquisition. We did principal components analysis to identify the key variables associated with a high volume of jobs postings, and investigated which companies perform well on those metrics. Honeywell fits every criteria we could come up with: they are a fortune 500 (often 100) company, they have influence in the marketplace as demonstrated by their LinkedIn followers and stock performance, they have the sheer size to have consistent hiring needs, and their hiring needs are appropriate for ClAIrvoyant's product.
+
+This analysis has some significant limitations worth acknowledging. The data this analysis is based off of was collected over two days - it is possible that the data collection could have just happened to align with the hiring cycle of some companies to either inflate or deflate their job postings numbers. We have established some evidence that it is unlikely that Honeywell's high job demand in the dataset is due to this kind of variation, because their employee volume and LinkedIn followers fundamentals are similarly strong. However, repeating this analysis with data collected over a broader period would give more confidence about the conclusions. There is also significant missingness in the dataset, especially for salary information, as companies do not publicize their salary information reliably. Our conclusions about Honeywell's need for our services depend on at least somewhat reliable salary information, especially about the low end of the salary range. An approach to data gathering that focuses on what employees actually end up getting paid rather than what job postings advertise could yield more interesting results. 
+
+We have good reason to believe that Honeywell will fill the role of an anchor client effectively from the LinkedIn dataset. As far as these data can inform us, Honeywell passes every test we have thrown at them. 

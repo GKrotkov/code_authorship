@@ -1,0 +1,175 @@
+---
+title: "36-613 Homework 5, Fall 2023"
+author: 
+- "Gabriel Krotkov"
+- 'Style Guide: Modified Tidyverse Style Guide'
+date: "Due Friday, Oct 6th, 2023 (11:59 PM EDT) on Gradescope"
+output:
+  pdf_document:
+    toc: yes
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+My variant of the Tidyverse style guide can be found [here](https://github.com/GKrotkov/gkrotkov_style_r/tree/main)
+
+# Problem 1: The Principal Components of Coffee (55 points)
+
+For this problem you'll work with a dataset curated via the [#TidyTuesday project](https://github.com/rfordatascience/tidytuesday/blob/master/data/2020/2020-07-07/readme.md) containing information from the Coffee Quality Database. The following code reads in the dataset and performs some initial pre-processing:
+
+```{r}
+library(tidyverse)
+library(factoextra)
+coffee_ratings <- read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-07-07/coffee_ratings.csv') %>%
+  filter(total_cup_points > 0)
+```
+
+\newpage
+
+a. (10pts) For this part, perform the following tasks:
+
++ Create a subset of the `coffee_ratings` dataset that only contains the 11 quantitative grade columns (starting with `aroma` and ending with `moisture`, see the README above for info about the columns in this dataset). Call this `coffee_quant`.
+
+```{r}
+coffee_quant <- coffee_ratings[, 21:31] %>%
+    scale(center = TRUE, 
+          scale = apply(., 2, sd, na.rm = TRUE))
+```
+
++ Run principal components analysis (PCA) on `coffee_quant`. Be sure that the columns of `coffee` are *centered* and *standardized* when you run PCA.
+
+```{r}
+coffee_pca <- prcomp(coffee_quant,
+                     center = TRUE, scale. = TRUE)
+
+coffee_ratings$pc1 <- coffee_pca$x[, 1]
+coffee_ratings$pc2 <- coffee_pca$x[, 2]
+coffee_ratings$pc3 <- coffee_pca$x[, 3]
+
+coffee_ratings %>%
+    ggplot(aes(x = pc1, y = pc2)) +
+    geom_point(alpha = 0.5) +
+    labs(title = "Principal Components of Coffee Dataset", 
+         x = "PC 1", y = "PC 2") + 
+    theme_bw()
+
+summary(coffee_pca)
+```
+
+Then, answer the following questions: What proportion of the total variation in the data is accounted by the first principal component specifically? By the second principal component specifically? By both the first and second principal components together?
+
+**Response**
+*PC1 accounts for 47.27% of total variation in the data, while PC2 accounts for 14.92% of total variation in the data. PC1 and PC2 together account for 62.19% of total variation in the data.*
+
+\newpage
+
+b. (10pts) In class we discussed using a scree plot (or *elbow plot*) to determine how many principal components should be used for visualization. For this part, create an elbow plot for these data, where the component numbers (1 through 11) are on the x-axis, and the proportion of total variation is on the y-axis.
+
+```{r}
+fviz_eig(coffee_pca, addlabels = TRUE, ncp = 11) +
+    geom_hline(yintercept = 100 * (1 / ncol(coffee_pca$x)), 
+               linetype = "dashed", color = "darkred")
+```
+
+After you've made your plot: Based on the plot, how many principal components do you think should be used for visualizations and analyses? Provide a 1-2 sentence explanation.
+
+**Response**
+*Based on the scree plot, I think that 2 principal components is the right number to use for visualizations and analyses. The dropoff from the bar for PC2 to PC3 is pretty large, and PC3 is the first bar to fall under our heuristic line.*
+
+c. (15pts) Use `ggplot()` to make the following scatterplots:
+
++ A scatterplot with the first principal component on the x-axis and the second principal component on the y-axis, with points colored by `total_cup_points`. __Choose an appropriate color gradient scale for `total_cup_points` that is different from the default.__
+
+```{r}
+ggplot(coffee_ratings, aes(x = pc1, y = pc2, color = total_cup_points)) + 
+    geom_point() + 
+    scale_color_gradient(low = "darkblue", high = "yellow") +
+    labs(title = "PCA of Coffee Ratings", 
+         x = "PC1", y = "PC2", color = "Total Cup Points") + 
+    theme_bw()
+```
+
++ A scatterplot with the first principal component on the x-axis and the third principal component on the y-axis, with points colored by `total_cup_points`.  __Again, choose an appropriate color gradient scale for `total_cup_points` that is different from the default.__
+
+```{r}
+ggplot(coffee_ratings, aes(x = pc1, y = pc3, color = total_cup_points)) + 
+    geom_point() + 
+    scale_color_gradient(low = "darkblue", high = "yellow") +
+    labs(title = "PCA of Coffee Ratings", 
+         x = "PC1", y = "PC3", color = "Total Cup Points") + 
+    theme_bw()
+```
+
+Then, for your each plot, discuss your main observations in 1-3 sentences. In particular: does `total_cup_points` appear to be associated with the any of the principal components you viewed in your plots?
+
+**Response**
+*`total_cup_points` seems to be most associated with PC1, with a smaller association with PC2. In the plot of PC1 against PC2 we can see a clearly decreasing gradient with respect to total cup points across PC1, with a more gradual decrease across PC2.*
+
+d. (20pts) As discussed in lecture, principal components are not interpretable by themselves, thereby limiting the observations you can make about the data. In this part we'll explore in what ways the **first and third principal components** are related to the original variables in the data.
+
+For this part, complete the following two tasks:
+
+1) Use `fviz_pca_biplot()` to make a biplot of the first and third principal components (change the `axes` input to be `c(1, 3)`). When you make this plot, unfortunately, it may be difficult to see some of the variable names on the arrows; if that is the case for you, put `repel = TRUE` within `fviz_pca_biplot()`, such that you can see all of the variable names. Additionally, color the points by the `total_cup_points` variable using the `col.ind` argument. You can use the the commented out code as a template. 
+
+After you've made the biplot, discuss in 1-4 sentences in what ways `total_cup_points` is associated with the original variables in the data.
+
+```{r}
+fviz_pca_biplot(coffee_pca, label = "var", axes = c(1, 3),
+                alpha.ind = 0.6, alpha.var = 0.5, repel = FALSE,
+                col.ind = coffee_ratings$total_cup_points, col.var = "black") +
+  scale_color_gradient(low = "darkblue", high = "darkorange") +
+  labs(color = "Total cup points") +
+  theme(legend.position = "bottom")
+```
+
+**Response**
+*Almost every variable in the coffee ratings dataset is related in the same way; higher total cup points maps to increasing acidity, aftertaste, aroma, body, etc. This cluster of variables is also very correlated to each other (as we can see with the aligned angles) At around 90 degrees to the major cluster, we see moisture associated with lower total cup points, with a much longer arrow indicating a more impactful individual association than any one of the variables in the major cluster. The variables uniformity and clean cup are also associated with each other and generally with a positive association with total cup points, but with a small impact on the association.*
+
+2) In Part C you should have used the `prcomp()` to create the principal components. After you've done that, you should be able to edit and uncomment the following line of code:
+
+```{r}
+coffee_pca$rotation
+```
+
+where `coffee_pca` is the object appropriately defined by `prcomp()`. You should be able to see an 11-by-11 matrix, where the rows correspond to the original variables and the columns correspond to the principal components. Each column represents the *linear combination* of the variables that each principal component represents (as discussed in class). In particular: Each number tells you how the variable is associated with the principal component. If a number is positive, that means coffees with a higher value of that principal component also tend to have a higher value of that variable. Similarly, if a number is negative, that means coffees with a *lower* value of that principal component tend to have a higher value of that variable.
+
+Now look back at the first plot you made in Part C, which visualizes the first and third principal components (colored by `total_cup_points`). Given these details about the rotation matrix, discuss in 1-4 sentences in what ways `total_cup_points` is associated with the original variables in the data. Be sure to explain how you used the rotation matrix output to arrive at your answer.
+
+**Response**
+*Looking at the rotation matrix, we can see that for PC1 every variable except moisture has a negative value. This indicates that moisture disagrees with the other variables in the primary principal component; the variables are pulling in different directions.*
+
+# Problem 2: Your Shiny Project (45 points)
+
+The goal of this problem is to help your team get started on your final project for this class.  __Everyone in your project group can submit the same work for this problem.__
+
+a. (10pts) To help structure your report, you are required to come up with at least three interesting, overarching questions for your dataset that are relevant for your 36-611 RFI. For this part, similar to part (c) of problem 1 in HW4, create a plot that is relevant to one of your research questions. For this part, just include the code for making the visualization as you do traditionally in homework. You will then make this visual interactive in parts b and c. You do NOT need to write an interpretation of the plot. __Make sure it is labeled appropriatedly.__ 
+
+```{r, warning = FALSE}
+load("data.rda")
+
+ggplot(companies, aes(x = mean_salary_min)) + 
+    geom_histogram(bins = 40, fill = "lightblue", color = "black") + 
+    theme_bw() + 
+    labs(title = "Distribution of Average Minimum Salary", 
+         x = "Avg. Max Salary", y = "Frequency")
+```
+
+b. (30pts) Create a Shiny app that converts your graph in part (a) to be reactive to __at least 3 widgets__ for the user to interact with the graph. Here are useful resources for you to look at for making Shiny apps and the various kinds of widgets:
+
++ [Shiny tutorials](https://shiny.posit.co/r/getstarted/shiny-basics/lesson1/)
+
++ [Shiny Gallery](https://shiny.posit.co/r/gallery/)
+
++ [Shiny cheatsheet](https://shiny.posit.co/r/articles/start/cheatsheet/)
+
+You do NOT need to turn in any code for this part, because we will grade your Shiny app based on you correctly following the directions in part c.
+
+c. (5pts) Follow [these directions by Posit](https://shiny.posit.co/r/articles/share/shinyapps/) to host your Shiny app created in part b on [shinyapps.io](https://www.shinyapps.io/?_gl=1*1u0p7gr*_ga*NzY3NzExODgzLjE2OTU4Mjg1NDA.*_ga_8QJS108GF1*MTY5NTgyODUzOS4xLjAuMTY5NTgyODUzOS4wLjAuMA..*_ga_2C0WZ1JHG0*MTY5NTgyODU0MC4xLjAuMTY5NTgyODU0MC4wLjAuMA..). All you have to do for this part is share the link for your Shiny app:
+
+**https://gkrotkov.shinyapps.io/salary_interactive/**
+
+
