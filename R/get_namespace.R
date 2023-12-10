@@ -1,6 +1,7 @@
 library(tidyverse)
 library(roxygen2)
-pkgs <- c("utils", "stats", "ggplot2", "dplyr", "tibble", "readr", "roxygen2")
+pkgs <- c("base", "utils", "stats", "ggplot2", "dplyr", "tibble", "readr", 
+          "roxygen2")
 namespaces <- c()
 
 get_namespace <- function(ns){
