@@ -1,7 +1,7 @@
 #source("rcode2txt.R")
 
 data_path <- "../data"
-authors <- c("group_1", "group_2", "group_3", 
+authors <- c("group_1", "group_2", "group_3", "group_4",
              "individual_1", "individual_2", "individual_3", "individual_4")
 author_id <- rep(authors, each = 10)
 author_paths <- paste(data_path, "authors", authors, sep = "/")
@@ -22,6 +22,7 @@ actual_authors_df <- data.frame(document_id, author_id)
 withhold_idx <- c(sample(which(author_id == "group_1"), test_size), 
                   sample(which(author_id == "group_2"), test_size), 
                   sample(which(author_id == "group_3"), test_size), 
+                  sample(which(author_id == "group_4"), test_size),
                   sample(which(author_id == "individual_1"), test_size), 
                   sample(which(author_id == "individual_2"), test_size), 
                   sample(which(author_id == "individual_3"), test_size), 
