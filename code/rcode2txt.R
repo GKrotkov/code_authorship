@@ -58,7 +58,7 @@ reformat_text_R <- function(path, replacements){
   script_lines <- readLines(path)
   
   text <-""
-    
+  
   for (i in 1:length(script_lines)){
     text <- paste0(text, script_lines[i], " new_line_placeholder ")
   }

@@ -111,10 +111,11 @@ mw_all <- c(
   "replace",
   "paste",
   "paste0"
-  )
+)
 
 # Attach namespace to mw_all and sort
-mw_all <- sort(c(mw_all,namespaces))
+mw_all <- c(mw_all,namespaces)
+mw_all <-sort(mw_all)
 
 # Empty list to store accuracy scores
 accuracy_list <- c()
@@ -123,12 +124,13 @@ accuracy_list <- c()
 pca_info <- data.frame(author_id = character(0))
 
 # Number of authors
-author_num <- 2
+author_num <- 7
 
 # Loop through all unique pairings of authors
 for (i in 1:author_num) {
   for (j in i:author_num) {
     if (i != j) {
+      print(c(i,j))
       # Get indices of authors' writings to be compared
       indices <- c((i*10-9):(i*10),(j*10-9):(j*10))
       
@@ -141,10 +143,14 @@ for (i in 1:author_num) {
       author1 <- actual_authors$author_id[1]
       author2 <- actual_authors$author_id[11]
       
+      named_vector <- code_txt$document_id
+      
       # Create tokens and dfm
       code_tokens <- code_txt %>%
         corpus() %>%
         tokens(remove_punct = TRUE, remove_symbols = TRUE, what = "word")
+      
+      code_tokens <- set_names(code_tokens, named_vector)
       
       code_dfm <- code_tokens %>%
         dfm() %>%
@@ -156,6 +162,8 @@ for (i in 1:author_num) {
       
       # Add the document_id column
       code_dfm_df$document_id <- rownames(code_dfm_df)
+      
+      code_dfm_df
       
       # Reorder columns
       code_dfm_df <- code_dfm_df %>%
@@ -172,6 +180,8 @@ for (i in 1:author_num) {
       train_dfm <- code_dfm_df %>% dplyr::filter(author_id == author1 | author_id == author2)
       test_dfm <- code_dfm_df %>% dplyr::filter(author_id == "disputed")
       
+      train_dfm
+      
       # Define training and testing sets to only have selected tokens
       train_dfm <- train_dfm %>% 
         dplyr::select(document_id, author_id, one_of(mw_all)) %>%
@@ -181,6 +191,8 @@ for (i in 1:author_num) {
       test_dfm <- test_dfm %>% 
         dplyr::select(document_id, author_id, one_of(mw_all)) %>%
         column_to_rownames("document_id")
+      
+      train_dfm[is.na(train_dfm)] <- 0
       
       # Fit cv using glmnet
       cv_fit <- cv.glmnet(as.matrix(train_dfm[, -1]), train_dfm[, 1], family = "binomial")
@@ -205,7 +217,7 @@ for (i in 1:author_num) {
       
       x_test <- model.matrix(author_id ~., test_dfm)[,-1]
       lasso_prob <- predict(cv_fit, newx = x_test, s = lambda_lse, type = "response")
-      lasso_predict <- ifelse(lasso_prob > 0.5, "zach", "gabe")
+      lasso_predict <- ifelse(lasso_prob > 0.5, author2, author1)
       
       # Data frame of authorship assignment
       results <- data.frame(lasso_predict, lasso_prob) %>% 
@@ -217,21 +229,26 @@ for (i in 1:author_num) {
       
       # Add a column with the actual authors
       results <- merge(results, actual_authors, by = "document_id")
-      
+      print(results)
       # Determine the accuracy of the model
       accuracy <- sum(results$pred_author_id == results$author_id) / 6
       
       # Store the accuracy in a list
       accuracy_list <- c(accuracy_list, accuracy)
       
-      # Store the coefficients of the model as columns and add them to the PCA data frame
-      new_vars <- pivot_wider(coefs, names_from = Variable, values_from = Coeff)
-      new_vars = rbind(new_vars, new_vars)
-      new_vars$author_id <- c(author1, author2)
-      pca_info <- merge(pca_info, new_vars, by = "author_id", all = TRUE)
+      # Make sure model is not empty
+      if(nrow(coefs) != 0){
+        # Store the coefficients of the model as columns and add them to the PCA data frame
+        new_vars <- pivot_wider(coefs, names_from = Variable, values_from = Coeff)
+        new_vars$author_id <- paste(author1, author2)
+        pca_info <- merge(pca_info, new_vars, all = TRUE)
+      }
     }
   }
 }
+
 # Get rid of author id
 pca_info$author_id <- NULL
+pca_info[is.na(pca_info)] <- 0
 pca_info
+mean(accuracy_list)
