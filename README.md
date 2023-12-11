@@ -1,12 +1,6 @@
 # code_authorship
 Github repo for code authorship analysis based on Mosteller &amp; Wallace
 
-The following scripts were developed by Professor David Brown of CMU: 
-- collocation_functions.R
-- dispersion_functions.R
-- google_ngrams.R
-- helper_functions.R
-- keyness_functions.R
-- mda_functions.R
-- utility_functions.R
-- vnc_functions.R
+The scripts in code/cmu-textstats were developed by Professor David Brown for the class Special Topics: Text Analysis
+
+Code in the outputs/ directory is organized by author. 
