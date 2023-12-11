@@ -23,7 +23,8 @@ screeplot_mda(pairwise_loadings)
 # PCA Plot
 authorship_pca <- prcomp(pairwise_loadings, center = TRUE, scale. = TRUE)
 
-ggplot(data.frame(pc1 = authorship_pca$x[, 1], pc2 = authorship_pca$x[, 2], 
+ggplot(data.frame(pc1 = authorship_pca$x[, 1], 
+                  pc2 = authorship_pca$x[, 2], 
                   comp_type = comparison_type), 
        aes(x = pc1, y = pc2, color = comp_type)) + 
     geom_point(alpha = 0.6) + 

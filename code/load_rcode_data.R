@@ -34,4 +34,3 @@ author_id[withhold_idx] <- "disputed"
 code_meta_df <- data.frame(document_id, author_id)
 
 code_txt_df <- data.frame(document_id, text)
-
