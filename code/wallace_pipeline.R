@@ -1,8 +1,11 @@
 #source("rcode2txt.R")
 #source("load_rcode_data.R")
+library(quanteda)
+library(tidyverse)
+library(glmnet)
 
 # Load in namespace phrases and remove punctuation
-load("/Users/zachstrennen/Downloads/r_namespaces.rda")
+load("../data/r_namespaces.rda")
 namespaces <- str_replace_all(namespaces, "[[:punct:]]", "")
 
 # Initial tokens chosen to be looked at for lasso
@@ -115,7 +118,7 @@ mw_all <- c(
 
 # Attach namespace to mw_all and sort
 mw_all <- c(mw_all,namespaces)
-mw_all <-sort(mw_all)
+mw_all <- sort(mw_all)
 
 # Empty list to store accuracy scores
 accuracy_list <- c()
@@ -125,6 +128,8 @@ pca_info <- data.frame(author_id = character(0))
 
 # Number of authors
 author_num <- 7
+
+accuracy_list <- c()
 
 # Loop through all unique pairings of authors
 for (i in 1:author_num) {
@@ -195,7 +200,8 @@ for (i in 1:author_num) {
       train_dfm[is.na(train_dfm)] <- 0
       
       # Fit cv using glmnet
-      cv_fit <- cv.glmnet(as.matrix(train_dfm[, -1]), train_dfm[, 1], family = "binomial")
+      cv_fit <- cv.glmnet(as.matrix(train_dfm[, -1]), train_dfm[, 1], 
+                          family = "binomial")
       
       # Plot cv
       #plot(cv_fit)
@@ -213,16 +219,18 @@ for (i in 1:author_num) {
       coefs <- coefs[-1, , drop = FALSE]
       
       # Fit with lasso
-      lasso_fit <- glmnet(as.matrix(train_dfm[, -1]), train_dfm[, 1], alpha = 1, family = "binomial", lambda = cv_fit$lambda.min)
-      
+      lasso_fit <- glmnet(as.matrix(train_dfm[, -1]), train_dfm[, 1], 
+                          alpha = 1, family = "binomial", 
+                          lambda = cv_fit$lambda.min)
       x_test <- model.matrix(author_id ~., test_dfm)[,-1]
-      lasso_prob <- predict(cv_fit, newx = x_test, s = lambda_lse, type = "response")
+      lasso_prob <- predict(cv_fit, newx = x_test, 
+                            s = cv_fit$lambda.1se, type = "response")
       lasso_predict <- ifelse(lasso_prob > 0.5, author2, author1)
       
       # Data frame of authorship assignment
       results <- data.frame(lasso_predict, lasso_prob) %>% 
         dplyr::rename(pred_author_id = s1, prob = s1.1)
-      
+
       # Make the index row a column
       results <- results %>%
         tibble::rownames_to_column(var = 'document_id')
@@ -230,16 +238,19 @@ for (i in 1:author_num) {
       # Add a column with the actual authors
       results <- merge(results, actual_authors, by = "document_id")
       print(results)
+      
       # Determine the accuracy of the model
-      accuracy <- sum(results$pred_author_id == results$author_id) / 6
+      accuracy <- sum(results$pred_author_id == results$author_id) / 
+        nrow(results)
       
       # Store the accuracy in a list
       accuracy_list <- c(accuracy_list, accuracy)
-      
+
       # Make sure model is not empty
       if(nrow(coefs) != 0){
-        # Store the coefficients of the model as columns and add them to the PCA data frame
-        new_vars <- pivot_wider(coefs, names_from = Variable, values_from = Coeff)
+        # Store model coefficients as columns and add them to the PCA df
+        new_vars <- pivot_wider(coefs, 
+                                names_from = Variable, values_from = Coeff)
         new_vars$author_id <- paste(author1, author2)
         pca_info <- merge(pca_info, new_vars, all = TRUE)
       }
@@ -248,7 +259,9 @@ for (i in 1:author_num) {
 }
 
 # Get rid of author id
+rownames(pca_info) <- pca_info$author_id
 pca_info$author_id <- NULL
 pca_info[is.na(pca_info)] <- 0
-pca_info
+# save the PCA dataframe
+save(pca_info, file = "../data/pca_df.rda")
 mean(accuracy_list)
