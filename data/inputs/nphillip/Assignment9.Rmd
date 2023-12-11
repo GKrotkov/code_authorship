@@ -1,0 +1,494 @@
+---
+title: "36-315 Homework 9, Fall 2023"
+author: "Noelani Phillips"
+date: "Due Wednesday, Dec. 6, 2023 11:59pm"
+output:
+  pdf_document:
+  html_document:
+    toc: yes
+    toc_float: yes
+    code_folding: show
+urlcolor: blue
+---
+
+```{r global options, include = FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+
+# More Final Project EDA and Text Data Analysis
+
+
+***
+***
+
+
+***General instructions for all homework assignments***: 
+
++ Use this file as the template for your submission.  Be sure to write your name at the top of this page in the author section.
+
++ When writing out answers to questions, please put them in the section designated by **[PUT YOUR ANSWER HERE]** so that your answers are in bold to differentiate them from the problem statements.  Each answer must be supported by written statements (unless otherwise specified).  **Thus, even if you think your code output is self-explanatory, be sure to answer questions with written statements outside of code blocks.**
+
++ For your homework submission, generate an .html file and an .Rmd file (named as: [AndrewID]-315-hw01.Rmd -- e.g. "fsk-315-hw01.Rmd").  When you're done, submit it to Gradescope (a button taking you to the course's Gradescope page can be found on left side of the course's Canvas page).  Gradescope only accepts PDFs, so either knit to PDF (see Lab 0) or take a moment to convert your .html file to a PDF using https://html2pdf.com/ (or a similar converter).
+
++ Your file should contain the code to answer each question in its own code block.  Your code should produce plots/output that will be automatically embedded in the output (.html) file.  Your lab and homework files will include the template code chunks like the following:
+
+```{r}
+library(tidyr)
+```
+
++ Although it's okay to discuss homework problems with other students, all of your homework (code, written answers, etc.) should be only your own.  Instances of identical, nearly identical, or copied homework will be considered cheating and plagiarism.  In other words, you must follow rules of academic integrity (as detailed in the syllabus).
+
+
+***
+***
+
+
+# Problem 1: Furthering the Group Project [20 pts]
+
+A quick reminder: you have the following due dates for the final project:
+
++ **Monday, December 11 by 11:59pm**: A public-ready HTML file.  Knit via RStudio, but write your file for the public (that is, a "self-contained" file; to check this, try to view it on a different computer than it was knit on - everything should be visible).
++ **( $\approx$ ) Wednesday, December 13**: 15-minute presentations (in Baker Hall 232M for those in Pittsburgh; via Zoom for those not).  Times will be scheduled soon.
+
+Be sure to read the rubric for the final group project that I posted on Canvas.  That's exactly what we will use to evaluate final projects - I hope this makes expectations for the final project clear.  Email me if you have any questions/concerns.
+
+For this problem, using the dataset for your final project, make one of the following types of graphs:
+
+- a dendrogram, PCA-based, or MDS-based plot;
+- a graph related to spatial data (e.g., a choropleth map, heat map, or other map-type graphic);
+- a graph related to time series data (e.g., a moving average, an autocorrelation plot, etc.);
+- a text-related plot (e.g., a word cloud, top TF-IDF words, a sentiment analysis graph, etc.)
+
+I'm pinpointing these graphs because (as explained in the rubric), you must make at least one of these types of graphs for your final project (and it would absolutely be preferable to make more than one non-EDA graph).  If you already made one of the above types of graphs for the previous assignment, please make a new graph this time.
+
+If you don't see how you could make one of the above graphs for your dataset, **email me ASAP and explain why**; however, I think most teams have some element of space, time, or text data, and thus should be able to make one of the last three graphs.  And those with high-dimensional correlated data should be able to make the first graph.
+
+As always, make sure your graph is properly labeled such that it is clear what you are displaying.  For this part, just include your graph and within a couple paragraphs: 
+
+- specify what the scientific question of interest is that this graph answers;
+- explain and interpret the plot;
+- discuss why you think this plot is particularly informative for the kind of question you aimed to address.
+
+```{r}
+library(countrycode)
+library(tidyverse)
+library(ggnewscale)
+library(ggplot2)
+library(ggseas)
+library(geomtextpath)
+futbol = read_csv2("./2021-2022 Football Player Stats.csv")
+extra_match = c("Africa", "Africa", "Europe", "Africa", "Africa", "Americas", "Americas", "Europe", "Africa", "Europe", "Europe", "Africa", "Africa", "Europe", "Europe", "Americas", "Africa", "Americas", "Europe", "Africa", "Europe", "Europe", "Americas", "Asia", "Europe", "Africa", "Europe", "Europe", "Africa", "Americas", "Europe", "Africa", "Africa")
+names(extra_match) = c("ALG", "ANG", "BUL", "CGO", "CHA", "CHI", "CRC", "CRO", "CTA", "DEN", "ENG", "EQG", "GAM", "GER", "GRE", "GRN", "GUI", "HON", "KVX", "MAD", "NED", "NIR", "PAR", "PHI", "POR", "RSA", "SCO", "SUI", "TOG", "URU", "WAL", "ZAM", "ZIM")
+
+extra_match2 = c("Algeria", "Angola", "Bulgaria", "Congo", "Chad", "Chile", "Costa Rica", "Croatia", "Central African Republic", "Denmark", "England", "Equatorial Guinea", "Gambia", "Germany", "Greece", "Grenada", "Guinea", "Honduras", "Kosovo", "Madagascar", "Netherlands", "Northern Ireland", "Paraguay", "Philippines", "Portugal", "South Africa", "Scotland", "Switzerland", "Togo", "Uruguay", "Wales", "Zambia", "Zimbabwe")
+names(extra_match2) = c("ALG", "ANG", "BUL", "CGO", "CHA", "CHI", "CRC", "CRO", "CTA", "DEN", "ENG", "EQG", "GAM", "GER", "GRE", "GRN", "GUI", "HON", "KVX", "MAD", "NED", "NIR", "PAR", "PHI", "POR", "RSA", "SCO", "SUI", "TOG", "URU", "WAL", "ZAM", "ZIM")
+futbol$Continent = countrycode(futbol$Nation, "iso3c", "continent", custom_match = extra_match)
+
+
+#futbol$Country = countrycode(futbol$Nation, "iso3c", "country.name", custom_match = extra_match2)
+simpPos = function (x) {
+  if (x == "MFFW") {
+    return ("MF")
+  } else if (x == "FWMF") {
+    return ("FW")
+  } else if (x == "DFMF") {
+    return ("DF")
+  } else if (x == "FWDF") {
+    return ("FW")
+  } else if (x == "MFDF") {
+    return ("MF")
+  } else if (x == "DFFW") {
+    return ("DF")
+  } else if (x == "GKMF") {
+    return ("GK")
+  } else {
+    return (x)
+  }
+}
+futbol$ShoDist = futbol$ShoDist/10
+futbol$Pos_simplified = sapply(futbol$Pos, FUN = simpPos)
+
+world = map_data("world")
+
+```
+
+```{r}
+
+futbol$Goals = as.numeric(futbol$Goals)
+futbol$`G/SoT` = as.numeric(futbol$`G/SoT`)
+futbol$Shots = as.numeric(futbol$Shots)
+
+
+noGoalie = filter(futbol, Pos_simplified=="DF" | Pos_simplified=="FW" | Pos_simplified == "MF")
+noGoalieorZero = filter(noGoalie, ShoDist!=0)
+
+
+meanDF = median(filter(futbol, Pos_simplified== "DF")$ShoDist)
+meanFW = median(filter(futbol, Pos_simplified== "FW")$ShoDist)
+meanMF = median(filter(futbol, Pos_simplified== "MF")$ShoDist)
+meanGK = median(filter(futbol, Pos_simplified== "GK")$ShoDist)
+
+lines = c(6, 18.5, 57.5)
+groupcolors = c("salmon", "turquoise", "mediumorchid1")
+noGoalieorZero %>% ggplot(aes(x = ShoDist)) +
+geom_density(aes(fill = Pos_simplified), alpha = 0.5, adjust = 1) +
+  geom_textvline(xintercept = 6, label = "goal line", hjust = 0.8,
+               linetype = "dashed", vjust = 1.3, color = "black") +
+  geom_textvline(xintercept = 18.5, label = "penalty line", hjust = 0.8,
+               linetype = "dashed", vjust = 1.3, color = "black") +
+  geom_textvline(xintercept = 57.5, label = "center line", hjust = 0.8,
+               linetype = "dashed", vjust = 1.3, color = "black") +
+  scale_fill_discrete(name = "Position", labels = c("Defender", "Forward", "Midfielder")) + 
+  labs(title = "Distribution of Shot Distance across Player Position", x = "Shot Distance (Yards)", y = "Density")  
+
+```
+
+**[This graph attempts the answer the question of how metrics related to goals and shots are broken down by player position. This graph plots the density curves of the average distance of all shots taken by players, grouped into their respective positions, goalies excluded. I added dashed lines to represent the goal, penalty, and center lines so we can get a better idea of where players are shooting from with respect to where they tend to be on the field. We see that the distribution for forwards peaks before that of midfielders as we'd expect forwards to shoot closer. The distribution for defenders is curious, the curve is more spread out but seems to peak slightly earlier than forwards. I think this plot is informative because it gives us an idea of where people are shooting from across position, and relative to certain lines.]**
+
+Also, after you've made a graph you're happy with, take the time to share your graph with your team so they know what you've done so far.  It's okay if members of your team happen to submit similar graphs for this question, but they **SHOULD NOT** be identical (as well should you do your own interpretation).  And once again, this is all working toward your team's public document, so don't make a graph that you wouldn't want to ultimately show to the world.
+
+
+***
+***
+
+
+# Problem 2: Processing Text Data from Reddit [16 pts]
+
+In this homework we will work with text data. `R` packages for text data often produce many messages and warnings that create messy HTML files when you Knit.  To suppress these warnings, I added some `knitr` code right after the preamble of this .Rmd file so that messages and warnings aren't printed out in any of the `R` code you submit for this homework (you'll have to look at the .Rmd file to see what I mean).  **When making your HTML files for the final project, you should suppress warnings and messages in this way - otherwise, you'll have a very messy HTML file as something meant for the public!  Your final submission should not have ANY warning or error messages, or any informational messages from `R` that you don't explicitly ask it for.**
+
+A colleague in the Stats&DS department and his collaborators (which I'll refer to as the "working group") have been studying gender disparities in online forums - e.g., do men, women, and non-binary people communicate differently online?  And more importantly, are they treated differently?  They've largely been focusing on reddit.com.  For those not familiar with reddit.com (hereafter called Reddit), I will give a brief description: Reddit is a website with extraordinary utility (as it approaches the sum total of human knowledge, albeit in a barely-searchable way) and a userbase of folks who found Twitter too pithy.  Users submit posts (usually anonymously) – questions, complaints, jokes, recipes, invariably-unanswered-calls-to-action and almost anything else you can imagine – and other users reply with “upvotes”, “downvotes”, and comments.  Within Reddit, there are many “subreddits,” which are basically subforums dedicated to specific topics.
+
+Gender disparities are difficult to assess on Reddit because it is anonymous, and thus we usually do not know a user's gender.  However, on the /r/relationships subreddit – where users ask for advice about relationships (which could be romantic, platonic, professional, etc.) – it is very common for users to “declare” their gender.  In this way, the /r/relationships subreddit is different from most other parts of Reddit.  For example, someone may make a post with the title, “My [25F] roommate [24M] refuses to do the dishes.”  In this case, the poster has “declared” that they are a 25-year-old female with a 24-year-old male roommate.  The working group downloaded every text-based Reddit post ever made, focused on the /r/relationships subreddit, and algorithmically labeled each post as being made by a “male” or “female” author (or at least the ones that had a [F] or [M] label, like in the aforementioned example).
+
+A limitation of this approach is that it excludes Reddit users who may not identify as male or female; at the time of download, the working group could not identify any consistently-used label (like [F] and [M]) for non-binary, and they focused on a binary view of gender for simplicity.  For the sake of this homework we will view gender in a binary fashion, but I wanted to acknowledge the limitation of this data.  Another limitation is that we will believe that Reddit users are telling the truth about their gender identity (e.g., someone who posts as [F] truly identifies as female).  (But, hey, do we really think someone would just go on the Internet and tell lies?)
+
+In this homework, you will focus on a random set of 10,000 posts from this subreddit.  Here's the dataset:
+```{r, message = FALSE, warning = FALSE}
+library(tidyverse)
+data <- read.csv("https://raw.githubusercontent.com/FSKoerner/Fall23-36315-data/main/redditData.csv")
+```
+
+The main variables we'll focus on in this homework are:
+
++ `title`: The text of the title of each post.
++ `gender`: The gender of each poster.  For simplicity, we'll focusing on male and female posters.
+
+The URL of each post is also available in the dataset, if you're really curious what any post might concern (however, this is not necessary for you to look at for this homework).  Note that some of these posts are explicit, so read at your own discretion, and some of these posts have likely been removed in the couple years since downloaded.
+
+
+__2(a) [6 pts]__ If you haven't already done so, install the `tm` library.  First we'll do some non-tidy pre-processing as an alternative but interchangeable method to that presented in class (you can instead use the `tidytext` package throughout the assignment, if you like).  To get you started, the following line of code recodes the `title` column into a `Corpus`, which is necessary to use the functions in the `tm` library:
+
+```{r, message = FALSE, warning = FALSE}
+library(tm)
+title <- Corpus(VectorSource(data$title))
+```
+
+Then the following `tm_map()` function calls change all the titles to lowercase, remove punctuation, and remove extra white space.
+
+```{r}
+#change to lowercase
+title <- tm_map(title, content_transformer(tolower))
+# Remove punctuations
+title <- tm_map(title, removePunctuation)
+# Eliminate extra white spaces
+title <- tm_map(title, stripWhitespace)
+```
+
+After you've done this, answer the following questions:
+
++ First, we'll create a Document-Term Matrix of the titles using the `DocumentTermMatrix()` function.  How many unique terms are in the resulting matrix?
+
+```{r}
+#make document term matrix
+DocumentTermMatrix(title)
+```
+
+**[8323]**
+
++ Now we'll again use the `DocumentTermMatrix()` function, but this time, to remove stopwords and perform stemming before calling the resulting matrix `dtm.title`.  How many unique terms are in the resulting matrix?
+
+```{r}
+dtm.title <- DocumentTermMatrix(title, control = list(stopwords = TRUE, stemming = TRUE))
+dtm.title
+```
+
+**[6166]**
+
++ Using the new Document-Term Matrix, `dtm.title`, what are the top ten most frequent words?  Please display these words from most frequent to least frequent.  For this task, you just need to write some code that outputs the top ten words; you don't need to make a graph.
+
+```{r}
+library(forcats)
+library(tidytext)
+
+dtm.tidy <- tidy(dtm.title)
+
+term.count <- dtm.tidy %>%
+  group_by(term) %>%
+  summarize(n.total=sum(count)) %>%
+  arrange(desc(n.total))
+head(term.count)
+```
+
+
+__2(b) [10 pts]__ Let's look at word usage for males and females. First, create two subsets of the data: one that contains only "male" posts and one that contains "female" posts.  Then, for each subset, convert the titles to a `Corpus` object, just like I did in Part A.  Call these `Corpus` objects `title.male` and `title.female`, respectively.
+
+```{r}
+data.female = filter(data, gender=="F")
+data.male = filter(data,gender=="M")
+title.female <- Corpus(VectorSource(data.female$title))
+title.male <- Corpus(VectorSource(data.male$title))
+
+```
+
+After you've done that, repeat the preprocessing from part __(a)__ (change all the titles to lowercase, remove punctuation, and remove extra white space) for `title.male` and `title.female`. After preprocessing, create a Document-Term Matrix (removing stopwords and performing stemming) for `title.male` and `title.female`.
+
+```{r}
+title.female <- tm_map(title.female, content_transformer(tolower))
+title.female <- tm_map(title.female, removePunctuation)
+title.female <- tm_map(title.female, stripWhitespace)
+
+title.male <- tm_map(title.male, content_transformer(tolower))
+title.male <- tm_map(title.male, removePunctuation)
+title.male <- tm_map(title.male, stripWhitespace)
+
+dtm.title.female <- DocumentTermMatrix(title.female, control = list(stopwords = TRUE, stemming = TRUE))
+dtm.title.male <- DocumentTermMatrix(title.male, control = list(stopwords = TRUE, stemming = TRUE))
+```
+
+After you've done that, answer the following questions (via just un-commenting the following code):
+
++ How many documents and unique terms are in the male posts subset? How about the female posts subset?
+
+```{r}
+ dtm.title.male
+ dtm.title.female
+```
+
+**[There are 5153 documents and 4172 unique terms for the male posts subset and 4847 documents and 4234 terms for the female posts subset.]**
+
++ What are the top ten most frequent words for males?  What about for females?  Please display these words from most frequent to least frequent.  Then, compare and contrast these two top-ten lists of words.
+
+```{r}
+dtm.tidy.female <- tidy(dtm.title.female)
+dtm.tidy.male <- tidy(dtm.title.male)
+
+female.term.count <- dtm.tidy.female %>%
+  group_by(term) %>%
+  summarize(n.total=sum(count)) %>%
+  arrange(desc(n.total))
+head(female.term.count, 10)
+
+male.term.count <- dtm.tidy.male %>%
+  group_by(term) %>%
+  summarize(n.total=sum(count)) %>%
+  arrange(desc(n.total))
+head(male.term.count, 10)
+```
+
+**[The top word for females is boyfriend while girlfriend is the second word for males. Feel, want, friend, relationship, month, dont, and year made the top ten on both lists so the lists are very similar overall. 22f and 21f made the female list while no such male counterpart appeared on the male list.]**
+
+
+***
+***
+
+
+# Problem 3: Word Clouds [30 pts]
+
+
+__3(a) [8 pts]__ In problem __2(a)__, you made a Document-Term matrix called `dtm.title`, where you removed stop words and performed stemming after processing the data using `tm_map()`.  In this problem, you'll use `dtm.title` to make a word cloud of frequently used words in Reddit post titles.
+
+After loading the `wordcloud` library, use `dtm.title` to make a word cloud of the Reddit titles using the `wordcloud()` function.  When using this function, specify the following arguments:
+
++ `words`
++ `freq`
++ `max.words`
++ `random.order`
++ `colors`
++ `rot.per`
+
+For the above arguments, choose specifications that you think make the word cloud look good (i.e., visually pleasing and interpretable).
+
+```{r}
+library(wordcloud)
+dtm.title
+title.matrix <- as.matrix(dtm.title)
+words <- sort(rowSums(title.matrix),decreasing=TRUE)
+words
+df <- data.frame(word = names(words),freq=words)
+
+wordcloud(words = df$word, freq = df$freq, min.freq = 1,max.words=200, random.order=FALSE, rot.per=0.35,            colors=brewer.pal(8, "Dark2"))
+```
+
+After you've made your word cloud, in 1-2 sentences, make some observations about the word cloud (there aren't necessarily specific "right" answers here - just mention what stands out to you).
+
+**[PUT YOUR ANSWER HERE]**
+
+*Hint*: in problem __2(a)__, you should have already computed `words` and `freq` (the first two arguments).  Check the `wordcloud` help file for details about the next four arguments do.
+
+
+__3(b) [11 pts]__ In problem __2(b)__, you made a Document-Term matrix for male posts specifically and a Document-Term matrix for female posts specifically, where you removed stop words and performed stemming after processing the data using `tm_map()`.  Using those Document-Term matrices, make a word cloud for male posts and a word cloud for female posts.  Similar to part __(a)__, choose specifications for the arguments of `wordcloud()` that make these word clouds visually pleasing to you.  Arrange these word clouds in a 1x2 grid using `par(mfrow = c(1,2))`.  When you Knit, you may find that the world clouds aren't fully displayed; if this is the case for you, try, e.g., `{r, fig.width = 10}` when writing your code chunk for the wordcloud.
+
+```{r}
+# PUT YOUR CODE AND WORD CLOUDS HERE
+```
+
+After you've made your word clouds, compare and contrast the word clouds in 1-2 sentences.
+
+**[PUT YOUR ANSWER HERE]**
+
+
+__3(c) [11 pts]__ Now let's make some comparison word clouds that compare word usage for male and female posts.  To get you started, the following code combines `title.male` and `title.female` into one `Corpus`, converts the Corpus to a plain text document, and then computes a Term-Document Matrix.  **Before running this code, be sure that you have already properly defined `title.male` and `title.female` in problem 2(b).**
+
+```{r}
+#put the male and female titles into one corpus
+# titleMaleFemale <- tm:::c.VCorpus(title.male, title.female)
+# titleMaleFemale <- tm_map(titleMaleFemale, PlainTextDocument)
+
+#remove stop words, perform stemming
+# titleMaleFemale <- tm_map(titleMaleFemale, removeWords, stopwords("english"))
+# titleMaleFemale <- tm_map(titleMaleFemale, stemDocument)
+
+#term-document matrix
+# tdm_maleFemale <- TermDocumentMatrix(titleMaleFemale)
+
+#convert to a matrix class
+# tdm_maleFemale <- as.matrix(tdm_maleFemale)
+```
+
+As of now, the matrix `tdm_maleFemale` should have 10000 columns (for each of the 10000 titles) and a number of rows equal to the number of unique words (this should be very close to the number you wrote down for problem __2(a)__ - it's okay if it's not exactly the same).
+
+Now we will create two different comparison word clouds, and compare/contrast them.  For this part, please complete the following **three tasks**:
+
++ First, make a comparison word cloud using `tdm_maleFemale`.  To do this, you'll have to create a new matrix with just two columns: the first column sums the word counts across all male documents, and the other column does the same for female documents, where the rows correspond to the individual words in the Term-Document matrix.  Call this matrix `tdm_maleFemale_sum`, and run `colnames(tdm_maleFemale_sum) = c("Male" ,"Female")` to change the column names of this matrix.  Then, use `tdm_maleFemale_sum` and `comparison.cloud()` to create a comparison world cloud (the union of two word clouds) for male and female posts.  As with part __(a)__, choose specifications for the arguments of `comparison.cloud()` that make these word clouds visually pleasing to you.
+
+```{r}
+# PUT YOUR CODE AND COMPARISON WORD CLOUD HERE
+```
+
++ The comparison word cloud you made above was created using the raw word counts contained in `tdm_maleFemale`.  As we discussed in class, it can be useful to instead use TF-IDF weights within a Term-Document matrix when making comparisons.  For this task, again make a comparison word cloud, but where you use TF-IDF weights instead when making the Term-Document matrix.  For this task, you should be able to copy-and-paste your code from the previous task, but then alter it slightly such that it incorporates TF-IDF weights instead.
+
+```{r}
+# PUT YOUR CODE AND COMPARISON WORD CLOUD HERE
+```
+
++ After you've made your word clouds, interpret them in 1-2 sentences.  Then, compare and contrast the two word clouds in another 1-2 sentences.
+
+**[PUT YOUR ANSWER HERE]**
+
+
+***
+***
+
+
+# Problem 4: Sentiment Analysis [24 pts]
+
+Now we will examine what types of "positive" and "negative" words men and women use on Reddit.
+
+
+__4(a) [10 pts]__ In problem __2(b)__, you should have defined the unique words used by men and women and the frequencies of those words.  Create a data.frame called `maleTitle.df` with the unique words (for males) in one column and their frequencies in another column.  Also create an analogous data.frame called `femaleTitle.df` for females.
+
+```{r}
+# PUT YOUR CODE HERE
+```
+
+After doing this, install the `tidytext` R package (if you haven't already done so), and define a data.frame that contains (1) the unique words (for males) in one column, their frequencies in another column, and (3) whether the word is "positive" or "negative" based on the Bing dictionary.  Similarly define a data.frame for females.  The datasets you define below should have many fewer rows than `maleTitle.df` or `femaleTitle.df`, because only a subset of the words in these datasets will be in the Bing dictionary.
+
+```{r}
+library(tidytext)
+# PUT YOUR CODE HERE
+```
+
+Using these data frames, answer the following questions:
+
++ What is the total frequency of positive and negative words for males?  What is the total frequency of positive and negative words for females?
+
+```{r}
+# PUT YOUR CODE HERE
+```
+
+**[PUT YOUR ANSWER HERE]**
+
++ Is the proportion of positive words (compared to negative words) significantly different between males and females?  Answer this question using a statistical test.
+
+```{r}
+# PUT YOUR CODE HERE
+```
+
+**[PUT YOUR ANSWER HERE]**
+
+*Hint*: for the second bullet point, consider using the `prop.test()` function (we're doing a test of binomial proportions, probably the second class of hypothesis tests you learned in your first stat class, after those of means).  This function takes two arguments: `x` and `n`.  `x` is the vector of "number of successes", and `n` is the vector of "number of trials".  Thus, if `x` and `n` are vectors of length 2 (one number for males, one number for females), then `prop.test()` will test if the proportion of successes is different between the two groups.  So, think carefully what `x` and `n` should be for this problem; in particular, imagine going through each word and labeling it as either positive (a "success") or negative (not a "success").
+
+
+__4(b) [14 pts]__ Regardless of whether or not men and women have significantly different proportions of positive words, they may be using different kinds of positive and negative words, so let's assess that too.
+
+Make:
+
++ a word cloud of the *positive* words that males use, and;
++ a word cloud of the *positive* words that females use. 
+
+Put these two word clouds side-by-side in the same figure.  Repeat this for `negative` words.  Again, you may need something like `{r, fig.width = 10}` so that your word clouds fully display when you Knit your file.  (Your submission should have four word clouds, corresponding to the different positive/negative and male/female combinations.)
+
+```{r}
+# PUT YOUR CODE AND WORD CLOUDS HERE
+```
+
+From these plots, do you think males and females are using the same kinds of positive and negative words?  Explain in 1-2 sentences.
+
+**[PUT YOUR ANSWER HERE]**
+
+*Hint*: use the data frames you defined in part __(a)__.
+
+
+***
+***
+
+
+# Problem 5: Topic Modeling [7 pts]
+
+For this problem, install the `topicmodels` `R` package.
+
+In problem __2(a)__, you should have defined an object called `dtm.title`.  (This is the Document-Term Matrix of titles, after pre-processing, removing stop words, and performing stemming.)  If you defined this object correctly, you should be able to run the code below (taken directly from the topic modeling `R` Demo).  For this problem, you don't have to do any new coding. All you have to do is un-comment and run the code, and make sure you understand what the graph is plotting.
+
+```{r}
+# library(topicmodels)
+# library(tidytext)
+# library(ggplot2)
+# library(tidyverse)
+# #run Latent Dirichlet Allocation
+# title_lda <- LDA(dtm.title, k = 2, control = list(seed = 1234))
+# #grab the word-topic probabilities
+# title_topics <- tidy(title_lda, matrix = "beta")
+# #grab the words with the top ten probabilities (betas),
+# #and then organize the data by topic, decreasing by beta
+# title_top_terms <- title_topics %>%
+#   group_by(topic) %>%
+#   top_n(10, beta) %>%
+#   ungroup() %>%
+#   arrange(topic, -beta)
+# #make the plot of betas for each topic
+# title_top_terms %>%
+#   mutate(term = reorder_within(term, beta, topic)) %>%
+#   ggplot(aes(term, beta, fill = factor(topic))) +
+#   geom_col(show.legend = FALSE) +
+#   facet_wrap(~ topic, scales = "free") +
+#   coord_flip() +
+#   scale_x_reordered()
+```
+
+After you've produced the graph from the code above answer the following questions: do the two topics produced by LDA seem distinct/different?  If not, this may suggest that all titles in this dataset are really just about one topic.  Does this make sense, given the context of this dataset?  Explain your answer in 1-3 sentences.  Is there anything else we *could* do to probe potential differences in topics?
+
+**[PUT YOUR ANSWER HERE]**
+
+
+***
+***
+
+
+# Problem 6: Survey [3 pts]
+
+How long would you estimate you spent, in total, working on this assignment?
+
+**[WRITE YOUR ANSWER HERE]**
+
+

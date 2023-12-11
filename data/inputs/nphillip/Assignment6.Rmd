@@ -1,0 +1,320 @@
+---
+title: "36-315 Homework 6, Fall 2023"
+author: "Noelani Phillips"
+date: "Due Wednesday, Nov. 8, 2023 11:59pm"
+output:
+  pdf_document:
+  html_document:
+    toc: yes
+    toc_float: yes
+    code_folding: show
+urlcolor: blue
+---
+
+# Pairs Plots, Contour Plots, Heat Maps, Distances and MDS
+
+
+***
+***
+
+
+***General instructions for all lab assignments***: 
+
++ Use this file as the template for your submission.  Be sure to write your name at the top of this page in the author section.
+
++ When writing out answers to questions, please put them in the section designated by **[PUT YOUR ANSWER HERE]** so that your answers are in bold to differentiate them from the problem statements.  Each answer must be supported by written statements (unless otherwise specified).  **Thus, even if you think your code output is self-explanatory, be sure to answer questions with written statements outside of code blocks.**
+
++ For your homework submission, generate an .html file and an .Rmd file (named as: [AndrewID]-315-hw01.Rmd -- e.g. "fsk-315-hw01.Rmd").  When you're done, submit it to Gradescope (a button taking you to the course's Gradescope page can be found on left side of the course's Canvas page).  Gradescope only accepts PDFs, so either knit to PDF (see Lab 0) or take a moment to convert your .html file to a PDF using https://html2pdf.com/ (or a similar converter).
+
++ Your file should contain the code to answer each question in its own code block.  Your code should produce plots/output that will be automatically embedded in the output (.html) file.  Your lab and homework files will include the template code chunks like the following:
+
+```{r}
+# PUT YOUR CODE AND PLOT HERE
+```
+
++ Although it's okay to discuss homework problems with other students, all of your homework (code, written answers, etc.) should be only your own.  Instances of identical, nearly identical, or copied homework will be considered cheating and plagiarism.  In other words, you must follow rules of academic integrity (as detailed in the syllabus).
+
+
+***
+***
+
+
+# Problem 1: Project Group Logistics, and Identifying Potential Datasets [16 pts]
+
+For this problem, you should once again fill out a Canvas Quiz, this time titled "Final Project Group Logistics", by Friday, Nov. 10, 11:59pm (although, the sooner the better).  In it, you'll report a few details of your group's progress toward a plan to construct your final project.  Specifically:
+
+__1(a) [4 pts]__ **Group Meeting Time**: it's very important that your group come up with a logistical game plan for how you are going to work together for the next month.  Write down a weekly one-hour block when everyone in your group can meet to discuss the project.  Portions of future assignments will ask for mini updates on your group project, so it is important that your group coordinate a regular time to meet.
+
+__1(b) [4 pts]__ **Mode of Collaboration**: in one paragraph, write down your team's plan for collaborating.  For example, will you have a shared Box, Google Drive, Slack, GitHub, etc. to share files, code, and other things?  How will the work be divided in your group?  Other details about how you plan to work as a group?  (Of course, you can change your collaborative plan as you go along, but for now, you should have a tentative plan __that you have discussed with your group__.)
+
+__1(c) [8 pts]__ **Two Potential Datasets**: recall that on Canvas, I provided a file that outlines guidelines and requirements for the dataset you'll pick for the final project.  Then, consulting those guidelines and requirements, pick **two** potential datasets to work on for the project.  In the quiz, you must include the following information about each dataset:
+
+  + The name of the dataset.
+  + The source of the dataset.
+  + A link to the dataset.
+  + A short paragraph (3-6 sentences) explaining why you picked this dataset as a potential candidate for the final project.  Your paragraph should explain how the dataset satisfies the aforementioned guidelines/requirements, why you think the dataset is complex enough to explore at least three interesting questions, and why the team is interested in the dataset.
+
+Depending on your answers and what other groups have chosen, I may recommend that you choose one dataset over another.  I will follow up with your team after submissions are in.
+
+__Also, take advantage of what each group member did in the previous homework to identify your datasets.__
+
+All team members may submit the __exact same information__ for each of the questions above when filling out this quiz, and can duplicate information from the data exploration portion of the last assignment; there is no worry of plagiarism for this question.
+
+For this problem, you don't have to include anything in the Homework 6 submission; so, you can delete this problem from your .Rmd file.
+
+
+***
+***
+
+
+# Problem 2: Contour Plots and Heat Maps [26 pts]
+
+In this problem, we will use a dataset on students' academic performance, found here:
+
+```{r}
+library(tidyverse)
+library(GGally)
+student_data <- read_csv("https://raw.githubusercontent.com/FSKoerner/Fall23-36315-data/main/students.csv")
+```
+
+Details about the dataset are found [here](https://www.kaggle.com/aljarah/xAPI-Edu-Data).  However, the main things you need to know about this dataset are:
+
++ Students' `Grade` is classified as Low (L), Medium (M), or High (H).
++ Covariates: There are 15 variables on student characteristics and behaviors, 4 of which are quantitative.
+
+
+__2(a) [8 pts]__ For this part, do the following:
+
++ Create a scatterplot of `RaisedHands` and `VisitedResources` (make sure to set `alpha` < 1) with contour lines added using `geom_density2d()`.
+
+```{r}
+ggplot(aes(x=RaisedHands, y=VisitedResources), data = student_data) + 
+  geom_point(alpha = 0.5)+ geom_density_2d() + 
+  labs(title = "Scatterplot of Visited Resources and Raised Hands with Contour Lines", 
+       x = "Raised Hands", y = "Visited Resources")
+```
+
++ In class we discussed how contour lines use two bandwidths; `geom_density2d()` estimates these bandwidths by default.  Now, copy-and-paste your above code, but make the bandwidth smaller by setting `h = c(10, 10)` within `geom_density2d()`.
+
+```{r}
+ggplot(aes(x=RaisedHands, y=VisitedResources), data = student_data) + 
+  geom_point(alpha = 0.5)+ geom_density_2d(h=c(10,10)) + 
+  labs(title = "Scatterplot of Visited Resources and Raised Hands with Contour Lines", 
+       x = "Raised Hands", y = "Visited Resources")
+```
+
++ Compare and contrast the two plots in 1-3 sentences.
+
+**[The contour lines in the first plot are more circular and wider. In contrast, the contour lines in the second plot are wiggly instead of circular and tighter around the sets of points.]**
+
+
+__2(b) [10 pts]__ Similar to part __(a)__, again make a scatterplot of `RaisedHands` and `VisitedResources` with contour lines, but with the following changes:
+
++ Make the bandwidth of the contour lines larger by setting `h = c(80, 80)` within `geom_density2d()`
++ Set the color of the points indicate `Grade` and the shape of the points indicate `Gender`.
+
+```{r}
+ggplot(aes(x=RaisedHands, y=VisitedResources), data = student_data) + 
+  geom_point(aes(color = Grade, shape = Gender), alpha = 0.8) + geom_density_2d(h=c(80,80)) + 
+  labs(title = "Scatterplot of Visited Resources and Raised Hands with Contour Lines", 
+       x = "Raised Hands", y = "Visited Resources")
+```
+
+After you've made your plot, answer the following two questions:
+
++ How many modes are there in the scatterplot?  In your answer, also characterize/describe each mode in terms of `RaisedHands` and `VisitedResources`.
+
+**[There are two modes, one in the bottom left corner and one in the top right corner. The first node tends to be associated with less Raised Hands and Visited Resources, whereas the second mode tends to be associated with more Raised Hands and Visited Resources.]**
+
++ In 1-3 sentences, characterize/describe each mode in terms of `Grade` and `Gender`.
+
+**[The bottom left mode is made up mostly of points where the Grade is low. Of those points, there seems to be an equal amount of male and female students. The top right mode is made up mostly of points where the Grade is high and some where the grade is medium. Of the points where grade is high, slightly more seem to be from female students, and of the points where grade is medium the proportion of gender seems to be equal.]**
+
+
+__2(c) [8 pts]__ For this part, you'll have to make two different heat maps (and all you'll need to do is turn in the two graphs).  Please:
+
++ Make a heat map of `RaisedHands` and `VisitedResources` with points added but no contour lines (using the default bandwidth) with `stat_density2d`.  Furthermore, change the default colors using `scale_fill_gradient()` and setting the `low` and `high` arguments in that function.  Be sure that you use `geom_point()` *after* you use `stat_density2d` (otherwise, you won't be able to see the points).
+
+```{r}
+student_data %>%
+ggplot(aes(x = RaisedHands,y = VisitedResources)) + 
+  stat_density2d(aes(fill = after_stat(density)), geom = "tile",contour = FALSE) +
+  geom_point(alpha = 0.2) + coord_fixed() + 
+  scale_fill_gradient(low = "white",high = "red") + 
+  labs(title = "Heat Plot of Raised Hands and Visited Resources", 
+       x = "Raised Hands", y = "Visited Resources")
+```
+
++ Make a hexagonal heatmap of `RaisedHands` and `VisitedResources`, but this time use `scale_fill_gradient2()`.  Within `scale_fill_gradient2()`, specify a "medium count" color using the `mid` argument (similar to the `low` and `high` arguments).  Within `scale_fill_gradient2()`, there is an argument called `midpoint` that specifies what magnitude a "medium density" is defined to be.  The default is 0, which doesn't make sense for densities, as they have 0 as their lowest possible value.  So, experiment and set `midpoint` equal to a non-zero number that you think makes sense given the range of counts observed in your hexagonal bins. 
+
+```{r}
+library(hexbin)
+student_data %>%
+ggplot(aes(x = RaisedHands,y = VisitedResources)) + 
+  geom_hex() + 
+  coord_fixed() + 
+  scale_fill_gradient2(low = "darkblue",high = "darkorange", midpoint = 3) + 
+  labs(title = "Hexagonal Heatmap of Raised Hands and Visited Resources", 
+       x = "Raised Hands", y = "Visited Resources")
+```
+
+You should end up with a hexagonal heat map that has a mix of three colors throughout it.  __In general, you should be careful when making visualizations based on three colors in the display.__  For the purpose of a density heat map, you should only focus on low to high changes in color.  But for future reference, you now know how to modify the color gradient to include a middle point cutoff.
+
+*Hint*: for the `midpoint` argument, your graph should be a gradient of three different colors that you've specified.  If this isn't the case, you may have specified `midpoint` poorly.
+
+**Note**: if you receive an error message when using `geom_hex()`, then you may need to install the `hexbin` package first.  Of course, after installing a package you should make sure to restart R/RStudio.
+
+
+***
+***
+
+
+# Problem 3: Pairs Plots [20 pts]
+
+In this problem, we'll continue working with the student dataset from problem __2__.
+
+
+__3(a) [9 pts]__ First, create a subset of the data, called `data.subset`, which contains *only* the following variables:
+
++ `RaisedHands`
++ `VisitedResources`
++ `AnnouncementsView`
++ `Discussion`
++ `Gender`
++ `Grade`
+
+After you've made `data.subset`, use the `ggpairs` function to make a pairs plot of the quantitative variables in `data.subset` (i.e., the first four variables in the above list).  Your plot should be a 4x4 grid, 6 of which are scatterplots.  Don't worry about changing the title/labels.
+
+```{r}
+data.subset = student_data %>% dplyr::select(RaisedHands, VisitedResources, AnnouncementsView, Discussion, Gender, Grade)
+
+ggpairs(data.subset, columns = 1:4)
+```
+
+After you've made your plot, answer the following questions:
+
++ Which pair of variables has the highest correlation?
+
+**[Visited Resources and Raised Hands have the highest correlation.]**
+
++ Which pair of variables has the lowest correlation?
+
+**[Disucssion and Visited Resources have the lowest correlation]**
+
+
+__3(b) [11 pts]__ Now, create a pairs plot with the following variables:
+
++ `RaisedHands`
++ `VisitedResources`
++ `Grade`
+
+Using the `mapping` argument, color the pairs plot by the `Gender` variable.  Make sure that there is some transparency in the plot.
+
+```{r}
+ggpairs(data.subset, column = c(1,2,6), mapping = ggplot2::aes(color = Gender, alpha = .5))
+```
+
+After you've made your plot, answer the following: in 1-3 sentences, describe the distribution of `VisitedResources` conditional on `Grade` and `Gender`.
+
+**The distribution is extremely left skewed for females with high grades and left skewed for males with high grades. The distribution is equally right skewed for females and males with low grades. The distribution is multimodal for medium grades with the largest peak on the right side, the peak is larger for females with medium grades than it is for males with medium grades.**
+
+*Hint*: this question is NOT asking you to describe the distribution of (1) `VisitedResources` conditional on `Grade`, or (2) `VisitedResources` conditional on `Gender`.  Rather, it's asking you to describe the distribution of `VisitedResources` conditional on both `Grade` AND `Gender` (together).
+
+
+***
+***
+
+
+# Problem 4: Olive Distances [35 pts]
+
+We'll now work with the olive oils dataset used in Lab 7.  The dataset can be found [here](https://raw.githubusercontent.com/FSKoerner/Fall23-36315-data/main/olive.csv) and more information about the data can be found [here](https://github.com/FSKoerner/Fall23-36315-data/blob/main/olive_description.txt).
+
+Here is the code to define the `olive` dataset:
+```{r}
+olive <- read_csv("https://raw.githubusercontent.com/FSKoerner/Fall23-36315-data/main/olive.csv")
+```
+
+
+__4(a) [10 pts]__ Plot the $k = 2$ dimensional representation produced by multi-dimensional scaling (MDS) on a scatterplot.  When doing this, use the Euclidean distance, and only use the quantitative variables (i.e., not `area` or `region`) to compute that distance.  **Remember to standardize your variables.**
+
+```{r}
+olive_quant = olive %>% dplyr::select("palmitic", "palmitoleic", "stearic", "linoleic", "linolenic", "arachidic", "eicosenoic")
+olive_std = scale(olive_quant, center=TRUE, scale=TRUE)
+olive_dist = dist(olive_std)
+olive_mds = cmdscale(d=olive_dist, k=2)
+olive <- olive %>%
+   mutate(mds1 = olive_mds[,1], mds2 = olive_mds[,2])
+olive %>% ggplot(aes(x=mds1, y=mds2)) + geom_point(alpha=.5) +
+  labs(x = "MDS Coordinate 1", y = "MDS Coordinate 2")
+```
+
+
+__4(b) [10 pts]__ Now copy-and-paste the code for the graph you made in part __(a)__, and make the following changes to your graph:
+
++ Add something to the graph such that you can determine how many modes there are in your part __(a)__ scatterplot.
+
++ Color the points by `area`.
+
+```{r}
+olive_quant = olive %>% dplyr::select("palmitic", "palmitoleic", "stearic", "linoleic", "linolenic", "arachidic", "eicosenoic")
+olive_std = scale(olive_quant, center=TRUE, scale=TRUE)
+olive_dist = dist(olive_std)
+olive_mds = cmdscale(d=olive_dist, k=2)
+olive <- olive %>%
+   mutate(mds1 = olive_mds[,1], mds2 = olive_mds[,2])
+olive %>% ggplot(aes(x=mds1, y=mds2)) + geom_point(aes(color = area), alpha=.5) +
+  geom_density2d()+
+  labs(x = "MDS Coordinate 1", y = "MDS Coordinate 2")
+```
+
+After you've made your plot, answer the following questions:
+
++ How many modes would you say there are in the scatterplot?  Explain your answer in 1-2 sentences.
+
+**[There are 4 ish modes in the scatterplot, one with a bunch of green points clustered, one with blue points clustered, another further down with more blue points, and one mode which is barely visible where red points are clustered.**
+
++ Summarize the takeaways from this graphic in 1-3 sentences.
+
+**[The relative euclidean distance between points where area = Sardinia is very small, as indicated by the tight green cluster. The relative euclidean distance between points where area = North or South are larger as indicated by the looser red and blue clusters.]**
+
+
+__4(c) [5 pts]__ As of now, the MDS dimensions don't have a lot of interpretability.  Therefore, it can be useful to see how the MDS dimensions relate to the original data.  Let's focus on the first dimension returned by the MDS that you ran in part __(a)__; call this $MDS_1$.  For this part, do the following:
+
++ First, run a linear regression with $MDS_1$ as the outcome and the quantitative variables in the dataset as the covariates (don't include any interactions).  Be sure you don't include `area`, `region`, or $MDS_2$ (the second dimension from MDS) in your regression.
+
+```{r}
+MDS_1 <- lm(mds1~palmitic + palmitoleic + stearic + oleic + linoleic + arachidic + eicosenoic, data = olive)
+summary(MDS_1)
+```
+
++ Answer the following: which variables are positively associated with $MDS_1$ to a statistically-significant degree, and which are negatively associated with $MDS_1$ to a statistically-significant degree?
+
+**[Stearic, oleic and linoleic are positively associated and palmitoleic, arachidic, and eicosenoic are negatively associated.]**
+
+
+__4(d) [10 pts]__ Pick two variables that are positively associated with $MDS_1$ to a statistically-significant degree and two variables that are negatively associated with $MDS_1$ to a statistically-significant degree.  Using `GGally`, produce a pairs plot that effectively does the following:
+
++ Plots all the pairwise scatterplots for the four variables (there should be six scatterplots), all colored by `area`.
++ Plots the marginal distribution of each of the four variables, each colored by `area`.
++ Uses `alpha = 0.5` such that there is some transparency in the plot.
+
+```{r}
+ggpairs(olive, columns = c(4,5,6,9), mapping = ggplot2::aes(color = area, alpha = .5) )
+```
+
+After making your graph, summarize the main takeaways from that graph in 1-4 sentences.  In your interpretation, be sure to compare the different areas in terms of each of the four variables you plotted.
+
+**[Within data where area = North, Stearic and Palmitoleic have the strongest positive correlation and Oleic and Stearic have the strongest negative correlation. Within data where area = Sardinia, Stearic and Palmitoleic have the strongest positive correlation and Oleic and Stearic have the strongest negative correlation. Within data where area = South, Oleic and Stearic have the strongest positive association and Oleic and Palmitoleic have the strongest negative correlation.]**
+
+
+***
+***
+
+
+# Problem 5: Survey [3 pts]
+
+How long would you estimate you spent, in total, working on this assignment?
+
+**[2.5 hours]**
+
+

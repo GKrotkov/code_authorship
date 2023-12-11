@@ -1,0 +1,182 @@
+---
+title: "36-401 DA Exam 1"
+author: "Noelani Phillips (nphillip)"
+date: "October 13, 2023"
+output:
+  pdf_document:
+    latex_engine: xelatex
+  word_document: default
+linestretch: 1.241
+fontsize: 12pt
+---
+
+
+```{r setup, include = FALSE}
+# By default, do not include R source code in the PDF. We do not want to see
+# code, only your text and figures.
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+# Introduction
+
+Carnegie Mellon has recently started offering 8am classes, which has lead to mixed reviews from students and faculty surrounding sleep and cognitive function/grades. It is reasonable to assume that having to wake up early and pay attention in a class at 8am would be difficult for college students, and may lead to worse grades in those classes. Thus, it would suggest that students who take these classes and get less sleep have lower GPAs. In this analysis, we hope to determine whether there is an association between sleep time and GPA, as well as to determine whether there is evidence that students who sleep less on average get lower GPAs. Additionally, we hope to determine what effect 2 hours less of sleep (the average amount less that a student with an 8am would sleep in comparison to one without) has on GPA. Finally, we're hoping to answer the question of causality: does less sleep cause a change in GPA or are there other confounding factors? Such questions will be pivotal in determining whether the increase in class scheduling flexibility for CMU is worth the potential harm to students' academic performance. Sleep data was collected on 634 students from CMU and two other universities. The students wore fitbits for a month during their spring semester and the tracker recorded the average time that they slept each night. Additionally, the students' grades were obtained at the end of the semester, as well as their GPAs from previous semesters. The analysis determined that sleep time and GPA were associated with each other, specifically that students who slept less were expected to have lower GPAs. However, causality between the two variables was not able to be proven.
+
+# Exploratory Data Analysis & Data Summary
+```{r, include = FALSE}
+library(tidyverse)
+sleep <- read_csv("cmu-sleep.csv")
+```
+Below are seven figures representing univariate and multivariate EDA
+
+
+```{r, fig.height = 3.5, fig.cap= "Total Sleep Time is bell-shaped and relatively normally distributed. It has a peak somewhere between 400 and 475 minutes."}
+#Histogram of Total Sleep Time
+hist(sleep$TotalSleepTime, main = "Total Sleep Time Per Night", xlab = "Time (in minutes)", ylab = "Number of Students")
+```
+
+```{r, fig.height = 3.5, fig.cap= "Term GPA has a large left skew and no left tail as the max is 4.0. Most students achieved a GPA of between 3.0 and 4.0 this past term."}
+#Histogram of Term GPA
+hist(sleep$term_gpa, main = "Term GPA", xlab = "GPA (out of 4.0)", ylab = "Number of Students", breaks = 20)
+```
+
+```{r, fig.height = 3.5, fig.cap= "Cumulative GPA is also left skewed. The peak is at a GPA of around 3.75, with the left tail being very thin towards the GPAs of 1.5-2.5, indicating that most students received a GPA of between 3.0 and 4.0."}
+#Histogram of Cumulative GPA
+hist(sleep$cum_gpa, main = "Cumulative GPA ", xlab = "GPA (out of 4.0)", ylab = "Number of Students")
+```
+
+```{r, fig.height = 3.5, fig.cap= "The scatter plot of Term GPA and Total Sleep Time is clustered towards the top and middle, indicating that most students had a GPA of between 3.0 and 4.0, and the sleep times of students varies rather largely. It is difficult to see any kind of relationship as the higher GPA values are clustered so closely together."}
+#Scatterplot of Total Sleep Time and Term GPA
+plot(term_gpa ~ TotalSleepTime, data = sleep, main = "Term GPA vs Sleep Time", ylab = "GPA (out of 4.0)", xlab = "Sleep per Night (in minutes)")
+```
+
+```{r, fig.height = 3.5, fig.cap= "The same is true to to an extent for the plot of Cumulative GPA and Total Sleep Time, although it does look slightly more spread out so a flat line may be able to be drawn, indicating that there is no/a small positive linear relationship."}
+#Scatterplot of Total Sleep Time and Cumulative GPA
+plot(cum_gpa ~ TotalSleepTime, data = sleep, main = "Cum GPA vs Sleep Time", ylab = "GPA (out of 4.0)", xlab = "Sleep per Night (in minutes)")
+```
+
+```{r, fig.height = 3.5, fig.cap= "The scatter plot of term GPA and cumulative GPA shows a strong positive linear relationship between the two variables, a fact that will be useful in answering our third research question."}
+#Scatterplot of GPAs
+plot(term_gpa ~ cum_gpa, data = sleep, main = "Term GPA vs Cum GPA", ylab = "GPA (out of 4.0)", xlab = "GPA (out of 4.0)")
+```
+
+```{r, fig.height = 3.5, fig.cap= "A log transformation of sleep time did not seem to improve the spread of the scatter plot with respect to term GPA, so a model will not be fitted with respect to this transformation."}
+#Scatterplot of Total Sleep Time and Log of Term GPA
+plot(term_gpa ~ log(TotalSleepTime), data = sleep, main = "Term GPA vs log(Sleep)", ylab = "GPA (out of 4.0)", xlab = "Log of Sleep per Night (in minutes)")
+```
+
+Moreover, none of the scatter plots involving sleep time seem to indicate anything about a linear relationship at first glance and modeling is required.
+
+# Methods
+
+```{r, include=FALSE}
+#Linear model of Total Sleep Time and Term GPA
+term_vs_sleep <- lm(term_gpa ~ TotalSleepTime, data = sleep)
+
+#Linear model of Total Sleep Time and Cumulative GPA
+cum_vs_sleep <- lm(cum_gpa ~ TotalSleepTime, data = sleep)
+
+#summary of first linear model
+out1 <- summary(term_vs_sleep)
+out1
+
+#summary of second linear model
+out2 <- summary(cum_vs_sleep)
+out2
+
+summary(lm(term_gpa ~ TotalSleepTime + cum_gpa, data = sleep))
+```
+
+To begin to answer our research questions, we fit three linear models. The first uses term GPA as the response variable and sleep time as the predictor, the second uses cumulative GPA as the response and sleep time as the predictor, and the third uses term GPA as the response variable, sleep time as one predictor, and cumulative GPA as the other. 
+
+The linear model's assumptions are as follows:
+
+1. Our sample is independent and identically distributed.
+2. The expected values of the errors are 0
+3. The expected variance of the errors is constant.
+4. The errors are normally distributed.
+5. The distribution of the response variable is Gaussian. 
+
+If the model assumptions are correct, there should be no relationship between the residuals and the predictor. This fact will be investigated in the residual plots for our first two linear models below.
+
+```{r, fig.height3.7, fig.cap = "The residual plot of term GPA suffers from heteroskedasticity, indicating non-constant variance of the errors"}
+plot(sleep$TotalSleepTime, out1$residuals,
+main = "Plot of term residuals vs total sleep time", ylim = c(-2,2), xlab = "total sleep time", ylab = "residuals")
+abline(h=0, v = 0, col = "red")
+```
+
+```{r, fig.height=3.7, fig.cap = "The residual plot of cumulative GPA suffers from heteroskedasticity, indicating non-constant variance of the errors"}
+plot(sleep$TotalSleepTime, out2$residuals,
+main = "Plot of cumulative residuals vs total sleep time", ylim = c(-2,2), xlab = "total sleep time", ylab = "residuals")
+abline(h=0, v = 0, col = "red")
+```
+
+Both residual plots suffer from some heteroskedasticity. This is due to the unequal spread of points above and below the zero-line marked in red. Ideally, we would like to see equal spread of residuals above and below, but since GPA is capped at 4.0, there are no residuals that stray in the extreme positive direction. Therefore, our models may not be ideal given the data collected on GPA. However the spread from left to right in these plots seems alright and there are no patterns in the data indicating non-linearity, so we will proceed with caution.
+
+To check that the errors are normally distributed, we construct Q-Q plots:
+
+```{r, fig.height=3.8, fig.cap = "The normal Q-Q plot of term GPA has deviation from the normal line."}
+qqnorm(residuals(term_vs_sleep), main = "Normal Q-Q Plot (Term GPA)", ylim = c(-4,4))
+qqline(residuals(term_vs_sleep))
+```
+
+```{r, fig.height=3.8, fig.cap = "The normal Q-Q plot of cumulative GPA has deviation from the normal line."}
+qqnorm(residuals(cum_vs_sleep), main = "Normal Q-Q Plot (Cumulative GPA)", ylim = c(-4,4))
+qqline(residuals(cum_vs_sleep))
+```
+
+The deviation in both plots seems significant and indicates that the errors are at best approximately normally distributed and at worst t-distributed or taken from another distribution. Therefore, this model assumption has been violated, and the results of any confidence intervals reported in the results section should be taken with a grain of salt. Further analysis will involve the conducting of three t-tests, a statistical hypothesis test designed to determine whether differences that arise between two groups are due to statistical significance or random chance. The t-test was chosen in these cases because we are interested in determining whether sleep time is a significant predictor of GPA, so we are testing whether the slope of our linear model (sleep time) is 0 or not.
+
+# Results
+
+The estimated regression lines for our first two models are as follows:
+
+$$ \hat{r}(term GPA)= 2.66 + 0.0019846*total sleep time $$
+$$ \hat{r}(cum GPA)= 3.088 + 0.0009497*total sleep time $$
+
+To answer the first research question, we first define our beta coefficients in the context of our linear models.
+$$ \beta_{T} = \beta_{total sleep time for term GPA}$$
+$$ \beta_{C} = \beta_{total sleep time for cumulative GPA}$$
+Then to determine whether total sleep time is associated with term GPA and cumulative GPA, we conduct two t-tests with Null and Alternative Hypotheses:
+
+$$ H_0: \beta_{T} = 0$$
+$$H_A: \beta_{T}\neq 0$$
+$$ H_0: \beta_{C} = 0$$
+$$H_A: \beta_{C}\neq 0$$
+Using the test-statistic reported in R's summary output for our first coefficient, we reject the null and conclude that total sleep time is associated with term GPA. 
+$$ \beta_{T}-0.0019846, t(632)-5.176, p<0.001$$
+Using the test-statistic reported in R's summary output for our second coefficient, we reject the null and conclude that total sleep time is associated with cumulative GPA as well. 
+$$ \beta_{C}-0.0009497, t(632)-2.792, p=0.005$$
+
+To answer the second research question concerning what average GPA we expect to see with two hours less of sleep, we calculate confidence intervals for our model coefficients. Since our coefficients are in terms of minutes of sleep and our research question is concerned with hours of sleep, the below results will be scaled up appropriately.
+
+```{r, include=FALSE}
+CI_term <- confint(term_vs_sleep)
+CI_cum <- confint(cum_vs_sleep)
+CI_term
+CI_cum
+```
+Students with two hours less of sleep have term GPAs that are, on average, 0.23808 points lower (95% CI [0.15, 0.33]). Therefore, for a student with two hours less sleep, we expect to see a decrease in term GPA that falls within this interval. Students with two hours less of sleep have cumulative GPAs that are, on average, 0.11396 points lower (95% CI [0.034, 0.19]). Therefore, for a student with two hours less sleep, we expect to see a decrease in term GPA that falls within this interval.The estimated regression line for our third linear model is as follows: 
+
+$$ \hat{r}(term GPA)= 0.46 + 0.001308*total sleep time + 0.7130*cum GPA $$
+
+```{r, include=FALSE}
+lm3 <- lm(term_gpa ~ TotalSleepTime + cum_gpa, data = sleep)
+out3 <- summary(lm3)
+out3
+```
+
+
+We then conduct an additional t-test with respect to the coefficient representing cumulative GPA. The Null and Alternative Hypotheses are as follows:
+
+$$ H_0: \beta_{CUM} = 0$$
+$$ H_A: \beta_{CUM} \neq 0$$
+Using the test-statistic reported in R's summary output for this coefficient, we reject the null and conclude that cumulative GPA is a significant predictor of term GPA as well.  
+$$ \beta_{CUM}-0.712962, t(631)-20.516, p<2.2e-16$$
+The presence of another significant predictor of term GPA indicates that sleep time may not be the only factor affecting term GPA. Thus, the analysis concludes that there is no evidence that this relationship is causal. 
+
+# Discussion
+
+This analysis has shown that there is an association between sleep and GPA. In particular, students who sleep less tend to have lower term and cumulative GPAs. However, we were not able to conclude that this relationship is causal. A student's cumulative GPA is likely to be a better indicator of how they will perform in the current semester and there may be other confounding variables as well such as class schedule, workload, stress, and many more. Based on these results, I recommend that Carnegie Mellon conducts a more comprehensive study before they reconsider their decision to schedule classes at 8am. While a decrease in term GPA of 0.23808 points is equivalent to moving down a whole letter grade in a class and is quite significant, the legitimacy of the analysis that came to this conclusion is not necessarily trustworthy because model assumptions were violated. Additionally, all the students who participated in the study were first years, meaning that their cumulative GPA only represented their fall semester and is not necessary reflective of the average college student's GPA. Little is known about how the students were recruited, and we cannot generalize the results of our analysis to the greater CMU population if the sample of students was not random. Another study should be conducted with a random sample of students from all years, and additional data should be collected regarding course attendance, exam grades, student schedules, etc. in order to better understand the relationship between sleep and GPA. In order to begin to prove causality, an experiment should be conducted in which students with similar workload and extra-curriculars are randomly chosen to take an 8am class, therefore attributing more meaning to any differences in GPA.    
+
+
+

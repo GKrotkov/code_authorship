@@ -1,0 +1,439 @@
+## ---- echo = FALSE, message = FALSE, warning = FALSE-----------------------------------------------------
+library(devtools)
+library(tidyverse)
+
+load_all("tbaR")
+
+
+## --------------------------------------------------------------------------------------------------------
+rm(list = ls())
+path <- "kraken_apollo.csv"
+data <- read.csv(path)
+
+scouter <- "harold"
+
+scouter_comments <- data[which(data$scoutName == scouter), 
+                         c("teamNum", "comments")]
+
+get_scouter_comments <- function(data, scouter){
+    return(data[which(data$scoutName == scouter), 
+                c("teamNum", "comments")])
+}
+
+
+## --------------------------------------------------------------------------------------------------------
+data <- read.csv("krakendata/mainframe.csv")
+schedule <- read.csv("krakendata/schedule.csv")
+
+data_ids <- paste(data$teamNum, data$matchNum, sep = "-")
+schedule_ids <- paste(schedule$red1, schedule$match_number, sep = " in q")
+schedule_ids <- c(schedule_ids, 
+                  paste(schedule$red2, schedule$match_number, sep = " in q"))
+schedule_ids <- c(schedule_ids, 
+                  paste(schedule$red3, schedule$match_number, sep = " in q"))
+schedule_ids <- c(schedule_ids, 
+                  paste(schedule$blue1, schedule$match_number, sep = " in q"))
+schedule_ids <- c(schedule_ids, 
+                  paste(schedule$blue2, schedule$match_number, sep = " in q"))
+schedule_ids <- c(schedule_ids, 
+                  paste(schedule$blue3, schedule$match_number, sep = " in q"))
+
+remaining <- setdiff(schedule_ids, data_ids)
+
+
+## --------------------------------------------------------------------------------------------------------
+library(reshape2)
+
+data <- read.csv("krakendata/mainframe.csv")
+schedule <- read.csv("krakendata/schedule.csv")
+
+#' ID Unscouted
+#' 
+#' Identify and return all the team-match combinations that exist in schedule 
+#' but don't exist in data.
+#' @param data krakendata main frame, actual scouted data. Assumed to have a 
+#' "matchNum" column and "teamNum" column with match and team number.
+#' @param schedule csv schedule from Kraken, full match schedule. Assumed to 
+#' have columns "match_number" and "red1", "red2", ... "blue1", ...
+#' @param remove_unplayed (bool) TRUE to trim away matches from the schedule
+#' if we haven't seen any matches that late or later.
+id_unscouted <- function(data, schedule, remove_unplayed = TRUE){
+    if (remove_unplayed){ # remove matches beyond your data
+        match_limit <- max(data$matchNum, na.rm = TRUE)
+        schedule <- schedule[schedule$match_number <= match_limit, ]
+    }
+    data_ids <- paste(data$teamNum, data$matchNum, sep = " in q")
+    schedule <- schedule[, c("match_number", "red1", "red2", "red3", 
+                             "blue1", "blue2", "blue3")]
+    schedule <- melt(schedule, id = c("match_number"), 
+                     value.name = "team", variable.name = "station")
+    schedule$station <- NULL
+    schedule_ids <- paste(schedule$team, schedule$match_number, sep = " in q")
+    return(setdiff(schedule_ids, data_ids))
+}
+
+id_unscouted(data, schedule, TRUE)
+
+
+## --------------------------------------------------------------------------------------------------------
+#' Indexer
+#' 
+#' @author Isolde Moyer
+#' Helper function to access the matrix diagonal.
+indexer <- function(row, col) {
+    return(row[col])
+}
+
+#' Apply Indexer
+#' 
+#' Applies the indexer function to the dataframe and pulls out the diagonal 
+#' of the resulting matrix, efficiently getting the requested data from DF.
+#' @author Isolde Moyer
+#' @details Assumes that the 'df' parameter is coercable to a matrix. Also
+#' assumes that idx is a dataframe with columns "ridx" and "cidx" (standing for
+#' row index and col index) that index into df. 
+apply_indexer <- function(df, idx){
+    indexed <- apply(as.matrix(df[idx$ridx, ]), 1, indexer, idx$cidx)
+    mat <- do.call("cbind", indexed)
+    return(diag(mat))
+}
+
+#' Substring Right
+#' 
+#' Returns the n rightmost characters in s.
+#' @param s input string
+#' @param n number of characters from the right to include (1 indexed)
+substr_right <- function(s, n){
+    return(substr(s, nchar(s) - n + 1, nchar(s)))
+}
+
+#' Inverted Substring Right
+#' 
+#' Returns string s without the n rightmost characters
+#' @param s input string
+#' @param n number of characters (1 indexed) to chop off the right.
+substr_right_inv <- function(s, n){
+    return(substr(s, 1, nchar(s) - 1))
+}
+
+#' Generic Robot Field Getter
+#' 
+#' generic solution for getting fields from tba that use "(color)_nameRobot#"
+#' as a naming style. Assumes field does not have the leading underscore.
+#' @param matches dataframe of match rows
+#' @param field variable name of interest in the (color)_(field)Robot(#) format
+#' @param team_id team id of interest
+#' @param unlist (boolean) unlist the result? Vast majority of time TRUE, FALSE 
+# if the content has complicated content not fit for a vector.
+get_generic_robot_field <- function(matches, field_id, team_id, 
+                                    unlist = TRUE){
+    stations <- get_team_stations(matches, team_id)
+    # assumption: station number is the last character of the string
+    station_num <- substr_right(stations$station, 1)
+    color <- substr_right_inv(stations$station, nchar(stations$station) - 1)
+    cidx <- paste0(color, "_", field_id, "Robot", station_num)
+    idx <- data.frame(ridx = stations$match, cidx = cidx)
+    result <- apply_indexer(matches, idx)
+    if (unlist) result <- unlist(result)
+    return(result)
+}
+
+
+## --------------------------------------------------------------------------------------------------------
+team <- 316
+fields <- c("mobility", "autoChargeStation", "endGameChargeStation")
+matches <- team_matches(team, year = 2023)
+
+# trim unplayed
+matches <- matches[matches$blue_score != -1 & matches$red_score != -1, ]
+
+mobility <- get_generic_robot_field(matches, fields[1], team)
+auto_raw <- get_generic_robot_field(matches, fields[2], team)
+endgame_raw <- get_generic_robot_field(matches, fields[3], team)
+
+# account for docks/engages
+stations <- get_team_stations(matches, team)
+color <- substr_right_inv(stations$station, nchar(stations$station) - 1)
+color <- color[order(stations$match)]
+auto_level <- ifelse(color == "red", matches$red_autoBridgeState, 
+                     matches$blue_autoBridgeState)
+auto <- ifelse(auto_raw == "Docked", 
+               ifelse(auto_level == "Level", "Engaged", "Docked"), 
+               auto_raw)
+endgame_level <- ifelse(color == "red", matches$red_endGameBridgeState, 
+                        matches$blue_endGameBridgeState)
+endgame <- ifelse(endgame_raw == "Docked", 
+                  ifelse(endgame_level == "Level", "Engaged", "Docked"), 
+                  endgame_raw)
+
+table(mobility)
+table(auto)
+table(endgame)
+
+
+## --------------------------------------------------------------------------------------------------------
+teams <- event_teams("2023mil", keys = TRUE)
+fields <- c("mobility", "autoChargeStation", "endGameChargeStation")
+
+get_tangibles <- function(team, fields, year = YEAR){
+    matches <- team_matches(team, year = year)
+    matches <- matches[matches$blue_score != -1 & matches$red_score != -1, ]
+    
+    # Needs generalization
+    mobility <- get_generic_robot_field(matches, fields[1], team)
+    auto_raw <- get_generic_robot_field(matches, fields[2], team)
+    endgame_raw <- get_generic_robot_field(matches, fields[3], team)
+
+    stations <- get_team_stations(matches, team)
+    color <- substr_right_inv(stations$station, nchar(stations$station) - 1)
+    color <- color[order(stations$match)]
+    auto_level <- ifelse(color == "red", matches$red_autoBridgeState, 
+                         matches$blue_autoBridgeState)
+    auto <- ifelse(auto_raw == "Docked", 
+                   ifelse(auto_level == "Level", "Engaged", "Docked"), 
+                   auto_raw)
+    endgame_level <- ifelse(color == "red", matches$red_endGameBridgeState, 
+                            matches$blue_endGameBridgeState)
+    endgame <- ifelse(endgame_raw == "Docked", 
+                      ifelse(endgame_level == "Level", "Engaged", "Docked"), 
+                      endgame_raw)
+    return(list(mobility = table(mobility), auto = table(auto), 
+                endgame = table(endgame)))
+}
+
+# yikes this takes a while to run
+tangibles <- sapply(teams, get_tangibles, fields = fields)
+
+
+## --------------------------------------------------------------------------------------------------------
+# testing purposes - using txcmp1, no internet 
+# DATA ONLY HAS QUAL MATCHES! THE SCRIPT WILL ASSUME IT ONLY GETS INPUT QUALS
+tba_data <- event_matches("2023txcmp1", match_type = "qual")
+save(tba_data, file = "apollo.rda")
+
+
+## --------------------------------------------------------------------------------------------------------
+# define relevant cols
+# mobility data, auto balance, endgame data
+
+tba_cols <- c("blue1", "blue2", "blue3", "red1", "red2", "red3", "match_number",
+                     "blue_autoChargeStationRobot1", 
+                     "blue_autoChargeStationRobot2",
+                     "blue_autoChargeStationRobot3", 
+                     "blue_endGameChargeStationRobot1",
+                     "blue_endGameChargeStationRobot2", 
+                     "blue_endGameChargeStationRobot3",
+                     "blue_mobilityRobot1", "blue_mobilityRobot2", 
+                     "blue_mobilityRobot3", "red_autoChargeStationRobot1", 
+                     "red_autoChargeStationRobot2",
+                     "red_autoChargeStationRobot3", 
+                     "red_endGameChargeStationRobot1",
+                     "red_endGameChargeStationRobot2", 
+                     "red_endGameChargeStationRobot3", 
+                     "red_mobilityRobot1", "red_mobilityRobot2", 
+                     "red_mobilityRobot3", "blue_autoBridgeState", 
+                     "blue_endGameBridgeState", "red_autoBridgeState", 
+                     "red_endGameBridgeState")
+
+kraken_cols <- c("matchNum", "teamNum", "mobility", 
+                 "autoBalance", "teleopBalance", "scoutName")
+
+save(tba_cols, kraken_cols, file = "col_defs.rda")
+
+
+## --------------------------------------------------------------------------------------------------------
+require(tidyverse)
+# load and reformat data so the TBA data is kraken-compatible
+load("col_defs.rda")
+load("apollo.rda") # loads tba_data object
+kraken_data <- read.csv("krakendata/kraken_apollo.csv")
+
+kraken_data <- kraken_data %>%
+  select(all_of(kraken_cols))
+tba_data <- tba_data %>%
+  select(all_of(tba_cols))
+
+rm(tba_cols, kraken_cols)
+
+col_stems <- c("", "_mobilityRobot", "_autoChargeStationRobot", 
+               "_endGameChargeStationRobot")
+col_names_template <- c("matchNum", "teamNum", 
+                        "mobility", "autoBalance", "teleopBalance",
+                        "autoBridgeState", "endgameBridgeState")
+
+# pull out correct columns and rename columns
+tba_blue1 <- tba_data[, c("match_number", paste0("blue", col_stems, "1"), 
+                          "blue_autoBridgeState", "blue_endGameBridgeState")]
+colnames(tba_blue1) <- col_names_template
+tba_blue2 <- tba_data[, c("match_number", paste0("blue", col_stems, "2"), 
+                          "blue_autoBridgeState", "blue_endGameBridgeState")]
+colnames(tba_blue2) <- col_names_template
+tba_blue3 <- tba_data[, c("match_number", paste0("blue", col_stems, "3"), 
+                          "blue_autoBridgeState", "blue_endGameBridgeState")]
+colnames(tba_blue3) <- col_names_template
+tba_red1 <- tba_data[, c("match_number", paste0("red", col_stems, "1"), 
+                         "red_autoBridgeState", "red_endGameBridgeState")]
+colnames(tba_red1) <- col_names_template
+tba_red2 <- tba_data[, c("match_number", paste0("red", col_stems, "2"), 
+                         "red_autoBridgeState", "red_endGameBridgeState")]
+colnames(tba_red2) <- col_names_template
+tba_red3 <- tba_data[, c("match_number", paste0("red", col_stems, "3"), 
+                         "red_autoBridgeState", "red_endGameBridgeState")]
+colnames(tba_red3) <- col_names_template
+
+tba_data <- rbind(tba_blue1, tba_blue2, tba_blue3, tba_red1, tba_red2, tba_red3)
+rm(tba_red1, tba_red2, tba_red3, tba_blue1, tba_blue2, tba_blue3)
+tba_data$teamNum <- as.integer(substr(tba_data$teamNum, 
+                                      4, nchar(tba_data$teamNum)))
+tba_data$mobility <- ifelse(tba_data$mobility == "Yes", TRUE, FALSE)
+
+# conform balance data
+tba_data$autoBalance <- ifelse(tba_data$autoBalance == "Docked", 
+                               ifelse(tba_data$autoBridgeState == "Level", 
+                                      "engage", "dock"), "na")
+tba_data$teleopBalance <- ifelse(tba_data$teleopBalance == "Docked", 
+                                 ifelse(tba_data$endgameBridgeState == "Level", 
+                                        "engage", "dock"), 
+                                 ifelse(tba_data$teleopBalance == "Park", 
+                                        "park", "na"))
+tba_data$autoBridgeState <- NULL; tba_data$endgameBridgeState <- NULL
+kraken_data$teleopBalance <- ifelse(kraken_data$teleopBalance == "fail", 
+                                    "na", kraken_data$teleopBalance)
+
+# trim TBA data to remove matches beyond what we've scouted
+match_limit <- max(kraken_data$matchNum)
+tba_data <- tba_data[which(tba_data$matchNum <= match_limit), ]
+
+# sort both dataframes
+tba_data <- tba_data[order(tba_data$matchNum, tba_data$teamNum), ]
+kraken_data <- kraken_data[order(kraken_data$matchNum, kraken_data$teamNum), ]
+tba_data$id <- paste(tba_data$matchNum, tba_data$teamNum, sep = "-")
+kraken_data$id <- paste(kraken_data$matchNum, kraken_data$teamNum, sep = "-")
+
+
+## --------------------------------------------------------------------------------------------------------
+# find differences in the conformed data
+# for each match ID in TBA, look to see if we have an equivalent in kraken
+tba_ids <- paste(tba_data$id, tba_data$mobility, tba_data$autoBalance, 
+                 tba_data$teleopBalance, sep = "-")
+kraken_ids <- paste(kraken_data$id, kraken_data$mobility, 
+                    kraken_data$autoBalance, kraken_data$teleopBalance, 
+                    sep = "-")
+unmatched <- which(!(tba_ids %in% kraken_ids))
+tba_unmatched <- tba_data[unmatched, ]
+
+# look only at unmatched for which we did at least scout the match
+validation <- tba_unmatched[tba_unmatched$id %in% kraken_data$id, ]
+
+
+
+## --------------------------------------------------------------------------------------------------------
+scouted <- kraken_data
+validation <- tba_data
+scout_name <- "novinski"
+
+
+
+## --------------------------------------------------------------------------------------------------------
+nov_vec <- scouted$scoutName == "novinski"
+nov_df <- scouted[nov_vec, 1:7]
+nov_validation <- validation[which(validation$id %in% nov_df$id), 1:6]
+nov_df <- nov_df[which(nov_df$id %in% nov_validation$id), ]
+
+colnames(nov_validation) <- paste0(colnames(nov_validation), "_validation")
+nov_combined <- cbind(nov_df, nov_validation)
+nov_combined$mobility_agree <- nov_combined$mobility == nov_combined$mobility_validation
+sum(nov_combined$mobility_agree) / nrow(nov_combined)
+
+
+## --------------------------------------------------------------------------------------------------------
+agreement_mobility <- function(scout_name, scouted, validation){
+    scout_df <- scouted[scouted$scoutName == scout_name, ]
+    scout_validation <- validation[which(validation$id %in% scout_df$id), ]
+    scout_df <- validation[which(scout_df$id %in% scout_validation$id), ]
+    colnames(scout_validation) <- paste0(colnames(scout_validation), 
+                                         "_validation")
+    scout_combined <- cbind(scout_df, scout_validation)
+    tmp <- scout_combined$mobility == scout_combined$mobility_validation
+    scout_combined$mobility_agree <- tmp
+    return(sum(scout_combined$mobility_agree) / nrow(scout_combined))
+}
+
+agreement_generic <- function(scout_name, col_name, scouted, validation){
+    scout_df <- scouted[scouted$scoutName == scout_name, ]
+    scout_validation <- validation[which(validation$id %in% scout_df$id), ]
+    scout_df <- validation[which(scout_df$id %in% scout_validation$id), ]
+    colnames(scout_validation) <- paste0(colnames(scout_validation), 
+                                         "_validation")
+    scout_combined <- cbind(scout_df, scout_validation)
+    scout_combined$agree <- scout_combined[, col_name] == 
+      scout_combined[, paste(col_name, "validation", sep = "_")]
+    return(sum(scout_combined$agree) / nrow(scout_combined))
+}
+
+scouted$scoutName <- tolower(scouted$scoutName) # match character cases
+scouted$scoutName <- str_trim(scouted$scoutName) # remove whitespace around edges
+scouted$scoutName <- ifelse(scouted$scoutName == "henry horvat",
+                       	"horvat", scouted$scoutName)
+scouts <- unique(scouted$scoutName)
+
+mobility_pcts <- rep(0, length(scouts))
+auto_balance_pcts <- rep(0, length(scouts))
+endgame_pcts <- rep(0, length(scouts))
+for (i in 1:length(scouts)){
+  mobility_pcts[i] <- agreement_generic(scouts[i], "mobility", 
+                                        scouted, validation)
+  auto_balance_pcts[i] <- agreement_generic(scouts[i], "autoBalance", 
+                                            scouted, validation)
+  endgame_pcts[i] <- agreement_generic(scouts[i], "teleopBalance", 
+                                       scouted, validation)
+}
+names(mobility_pcts) <- scouts
+names(auto_balance_pcts) <- scouts
+names(endgame_pcts) <- scouts
+
+
+## --------------------------------------------------------------------------------------------------------
+path <- "krakendata/mainframe.csv"
+data <- read.csv(path)
+data$scoutName <- tolower(data$scoutName)
+
+scout_counts <- table(data$scoutName)
+scouters <- names(scout_counts)
+
+scouter_comments <- data[which(data$scoutName == scouter), 
+                         c("teamNum", "comments")]
+
+get_scouter_comments <- function(data, scouter){
+    return(data[which(data$scoutName == scouter), 
+                c("teamNum", "comments")])
+}
+
+for (i in 1:length(scouters)){
+    comments <- get_scouter_comments(data, scouters[i])
+    write.csv(comments, file = paste0("comments/", scouters[i], ".csv"))
+}
+
+
+## --------------------------------------------------------------------------------------------------------
+# get links & score, output to a csv
+# REQUIREMENT: needs to be able to see a tbaR package in its local directory
+# OUTPUT: "ssframe.csv", in whatever local directory we're in
+
+library(devtools)
+load_all("tbaR")
+
+event <- "2023mil"
+matches <- event_matches("2023mil", match_type = "qual")
+# filter out unplayed matches
+matches <- matches[(matches$red_score != -1) & (matches$blue_score != -1), ]
+
+# we can use match_number since we only requested qual data from tbaR
+result <- data.frame(matchNum = matches$match_number, 
+                     redScore = matches$red_score, 
+                     redLinks = matches$red_linkPoints / 5,
+                     blueScore = matches$blue_score, 
+                     blueLinks = matches$blue_linkPoints / 5)
+result <- result[order(result$matchNum), ]
+write.csv(result, file = "ssframe.csv")
+

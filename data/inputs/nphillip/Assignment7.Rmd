@@ -1,0 +1,262 @@
+---
+title: "36-315 Homework 7, Fall 2023"
+author: "Noelani Phillips"
+date: "Due Wednesday, Nov. 15, 2023 11:59pm"
+output:
+  pdf_document:
+  html_document:
+    toc: yes
+    toc_float: yes
+    code_folding: show
+urlcolor: blue
+---
+
+
+# Dendrograms and Principal Component Analysis
+
+
+***
+***
+
+
+***General instructions for all lab assignments***: 
+
++ Use this file as the template for your submission.  Be sure to write your name at the top of this page in the author section.
+
++ When writing out answers to questions, please put them in the section designated by **[PUT YOUR ANSWER HERE]** so that your answers are in bold to differentiate them from the problem statements.  Each answer must be supported by written statements (unless otherwise specified).  **Thus, even if you think your code output is self-explanatory, be sure to answer questions with written statements outside of code blocks.**
+
++ For your homework submission, generate an .html file and an .Rmd file (named as: [AndrewID]-315-hw01.Rmd -- e.g. "fsk-315-hw01.Rmd").  When you're done, submit it to Gradescope (a button taking you to the course's Gradescope page can be found on left side of the course's Canvas page).  Gradescope only accepts PDFs, so either knit to PDF (see Lab 0) or take a moment to convert your .html file to a PDF using https://html2pdf.com/ (or a similar converter).
+
++ Your file should contain the code to answer each question in its own code block.  Your code should produce plots/output that will be automatically embedded in the output (.html) file.  Your lab and homework files will include the template code chunks like the following:
+
+```{r}
+# PUT YOUR CODE AND PLOT HERE
+```
+
++ Although it's okay to discuss homework problems with other students, all of your homework (code, written answers, etc.) should be only your own.  Instances of identical, nearly identical, or copied homework will be considered cheating and plagiarism.  In other words, you must follow rules of academic integrity (as detailed in the syllabus).
+
+
+***
+***
+
+
+# Problem 1: Visualizing Different Branches of Music [42 pts]
+
+Professor T. Slinger is working with a dataset on songs from Spotify.  Here is the dataset:
+
+```{r}
+library(tidyverse)
+spotify <- read_csv("https://raw.githubusercontent.com/FSKoerner/Fall23-36315-data/main/spotify.csv", 
+                    col_types = cols())
+```
+
+The data come from Kaggle [here](https://www.kaggle.com/yamaerenay/spotify-dataset-19212020-160k-tracks).  The original data is very large: it contains data on almost 200,000 songs, where each song is automatically measured based on 11 characteristics:
+
++ `acousticness`
++ `danceability`
++ `duration_ms`
++ `energy`
++ `instrumentalness`
++ `liveness`
++ `loudness`
++ `speechiness`
++ `tempo`
++ `valence`
++ `popularity`
+
+Most of the variables are fairly self-explanatory; a higher value denotes a "higher amount" of that variable (e.g., energy, danceability, etc.)
+
+Professor Slinger's dataset (`spotify`) *does not* contain information on all 200,000 songs; rather, it contains the *average* information of every song in a given year.  For example, the first row of the dataset shows the average value of each variable for all songs released in 1920:
+
+```{r}
+spotify[1,]
+```
+
+Note the `year` variable, which ranges from 1920 to 2021.  We will mostly be working with the `decades` variable instead, which denotes two-decade ranges for each song.  In this problem, we will use dendrograms to visualize this dataset; in problem __2__, we will use principal component analysis.
+
+
+__1(a) [15 pts]__ Make two dendrograms of the `spotify` dataset: one using "single linkage" hierarchical clustering and one using "complete linkage" hierarchical clustering.  When you do this, use the distance matrix of Euclidean distances **amongst the 11 quantitative variables in the `spotify` dataset**, and be sure to standardize your variables before doing so.  (Note: the only two other variables in the dataset, i.e., those which you should exclude, are `year` and `decades`.  So, create a dataset that removes `year` and `decades` when computing the distance matrix.)
+
+When you make your plots, be sure to plot a `dendrogram` type object in `R` (i.e., use the `as.dendrogram` function before plotting).  It's okay if your plot has leaf labels.
+
+```{r}
+spotify_quant = spotify %>% dplyr::select("acousticness", "danceability", "duration_ms", "energy", "instrumentalness", "liveness", "speechiness", "tempo", "valence", "popularity")
+spotify_scale = scale(spotify_quant, center=TRUE, scale=TRUE)
+spotify_dist = dist(spotify_scale)
+spotify_cl <- hclust(spotify_dist, method = 'complete')
+spotify_sl <- hclust(spotify_dist, method = "single")
+spotify_cl_dend <- as.dendrogram(spotify_cl)
+spotify_sl_dend <- as.dendrogram(spotify_sl)
+plot(spotify_sl_dend, main = "Single Linkage Dendrogram")
+plot(spotify_cl_dend, main = "Complete Linkage Dendrogram")
+```
+
+After you've made your two plots, in 1-2 sentences, compare the overall "shape" of the tree (i.e., the clustering structure) between the "single linkage" tree and the "complete linkage" tree.
+
+**[The single linkage tree has a very skewed shape, this is because it links clusters that are very far from each other, which is why the lines linking clusters are so long. The complete linkage tree resembles more of a traditional tree shape becuase it links clusters that are similar to each other so the linking lines are relatively short.]**
+
+
+__1(b) [12 pts]__ To better understand the clustering structure between "single linkage" and "complete linkage," it can be helpful to color the tree by the clusters it naturally divides into.  For this part, recreate the plots from part __(a)__, but color each tree with $k = 3$ colors, and include those colored trees here.  To do this, use the `set` function in the `dendextend` `R` library.  We went over how to do this in lab, but your code should look something like the following:
+
+```{r}
+ library(dendextend)
+ hc_spotify_cl_dend <- set(spotify_cl_dend, "branches_k_color", k = 3)
+ plot(hc_spotify_cl_dend)
+```
+
+where `hc_spotify_complete_dend` is the `dendrogram` object you should have created in part __(a)__ using "complete linkage"; the "single linkage" code will then be analogous:
+
+```{r}
+hc_spotify_sl_dend <- set(spotify_sl_dend, "branches_k_color", k = 3)
+ plot(hc_spotify_sl_dend)
+```
+
+After you do this, in 1-2 sentences, compare and contrast these two trees.  (The "single linkage" tree should look particularly odd.)
+
+**[The complete linkage tree is as expected, since k = 3, the tree has split into three branches, doing those splits one the right side first. The three branches are therefore "relatively" equal in size. In comparison, the blue branch for the single linkage tree is quite large while the other two branches are tiny. This is due to the way clusters are linked together.]**
+
+
+__1(c) [5 pts]__ Let's better understand what's going on in part __(b)__.  The code provided in part __(b)__ uses the `cutree` function (look up the help documentation for this) behind the scenes.  Run the code `cutree(hc_spotify_complete_dend, k = 3)` in the console to see what this function does.
+
+After you've done that: how many observations are in each of the $k = 3$ groups produced by "complete linkage" hierarchical clustering?  How about by "single linkage" hierarchical clustering?  In this part, be sure to also provide the code that allows you to answer these questions.
+
+```{r}
+#cutree(hc_spotify_cl_dend, k=3)
+table(cutree(hc_spotify_cl_dend, k=3))
+table(cutree(hc_spotify_sl_dend, k=3))
+```
+
+**[For complete linkage, there are 35 obs in group 1, 14 in group 2, and 53 in group 3.For single linkage, there are 100 obs in group 1, 1 in group 2, and 1 in group 3.]**
+
+
+__1(d) [10 pts]__ The odd behavior in part __(b)__ is why people usually prefer "complete linkage" over "single linkage," so we'll focus on "complete linkage" for this part.  As discussed in lab, we can also use the `set` function to color the leaf labels in a dendrogram.  In this part, you must color the leaf labels by the `decades` variable.  To do this, do the following things:
+
++ First, create an object called `spotify_decades_colors`, which is a vector of colors, one for each `decades` value (there are 5).  In other words, this should be a vector of length 102 (the number of observations in the dataset), where there is one color for each `decades` value in the dataset.  Since there are five unique `decades` in the dataset, there should be five unique colors in `spotify_decades_colors` - you can choose any colors you like.
+
+```{r}
+spotify_decades_colors = ifelse(spotify$decades == "1920s-30s", "pink", 
+                                ifelse(spotify$decades == "1940s-50s", "orange", 
+                                       ifelse(spotify$decades == "1960s-1970s", "yellow", 
+                                              ifelse(spotify$decades == "1980s-1990s", "lightblue", "purple"))))
+                                                     
+```
++ Having already used `set` to "set" the "branches_k_color" to be $k = 3$ for your `dendrogram` object in part __(b)__, run the following code:
+
+```{r}
+hc_spotify_cl_dend <- set(hc_spotify_cl_dend, "labels_colors", order_value = TRUE, spotify_decades_colors)
+plot(hc_spotify_cl_dend)
+```
+
+This code requires that you have `hc_spotify_complete_dend` correctly defined (see part __(b)__), as well as `spotify_decades_colors` defined.
+
+After you run the above code and make a plot with branch and leaf label colors (which you should include in your submission), characterize the three clusters identified by the dendrogram in terms of the `decades` variable, in 1-3 sentences.  In particular, to what extent are the three clusters identified by our dendrogram characterized by particular `decades` in the dataset?
+
+**[The red cluster is mainly made up of observations from the 1920s-30s, the green cluster is mainly made up of observations from the 1940s-50s and 1960s-70s, the blue cluster is mainly made up of observations from the 2000s, with some from the 1980s-190s and a few from the 1960s-70s as well. While the red cluster is pretty homogenous, the other two cannot really be attributed to a single decade.]**
+
+
+***
+***
+
+
+# Problem 2: The Principal Components of Music [55 pts]
+
+Now Professor Slinger would like you to use principal component analysis to visualize the `spotify` dataset from problem __1__.
+
+
+__2(a) [10 pts]__ For this part, perform the following tasks:
+
++ Create a subset of the `spotify` dataset that only contains the 11 quantitative variables mentioned in problem __1__.  Call this `spotify_quant`.  (You should have already made a similar, if not identical, subset in problem __1__.)
+
+```{r}
+spotify_quant = spotify %>% dplyr::select("acousticness", "danceability", "duration_ms", "energy", "instrumentalness", "liveness", "speechiness", "tempo", "valence", "popularity")
+spotify_scale = scale(spotify_quant, center=TRUE, scale=TRUE)
+```
+
++ Run principal components analysis (PCA) on `spotify_quant`.  Be sure that the columns of `spotify` are **centered** and **standardized** when you run PCA.
+
+```{r}
+spotify_pca <- prcomp(spotify_scale)
+summary(spotify_pca)
+```
+
+Then, answer the following questions: what proportion of the total variation in the data is accounted for specifically by the first principal component?  By the second principal component?  By both the first and second principal components together?
+
+**[0.5183 is accounted for by the first principal component, 0.1865 by the second component, and 0.7049 by the first and second components together.]**
+
+
+__2(b) [10 pts]__ In class and lab we discussed using a *scree plot* (or *elbow plot*) to determine how many principal components should be used for visualization.  For this part, create an elbow plot for these data, where the component numbers (1 through 11) are on the x-axis, and the proportion of total variation is on the y-axis.
+
+```{r}
+library(factoextra)
+fviz_eig(spotify_pca)
+fviz_eig(spotify_pca) + geom_hline(yintercept = 100*(1/ncol(spotify_quant)))
+```
+
+After you've made your plot: based on the plot, how many principal components do you think should be used for visualizations and analyses?  Provide a 1-2 sentence explanation.
+
+**[3 principal components should be used because that is where the elbow plot starts to level off and where the horizontal line intercepts the scree line.**
+
+
+__2(c) [15 pts]__ Professor Slinger now asks you to use `ggplot()` to make the following scatterplots:
+
++ A scatterplot with the first principal component on the x-axis and the second principal component on the y-axis, with points colored by `decades`.
+
+```{r}
+spotify_pc_matrix <- spotify_pca$x
+spotify$pca1 = spotify_pc_matrix[,1]
+spotify$pca2 = spotify_pc_matrix[,2]
+spotify %>% ggplot(aes(x=pca1, y=pca2)) + geom_point(aes(color = decades))
+```
+
++ A scatterplot with the first principal component on the x-axis and the third principal component on the y-axis, with points colored by `decades`.
+
+```{r}
+spotify$pca3 = spotify_pc_matrix[,3]
+spotify %>% ggplot(aes(x=pca1, y=pca3)) + geom_point(aes(color = decades))
+```
+
+For each plot, discuss your main observations in 1-3 sentences.  In particular: in what ways does `decades` seem to be associated with each of the principal components you are visualizing in each plot?
+
+**[Songs from later decades seem to be associated with both a higher pca1 value, and the pca2 value tends to vary less for songs from later decades. Songs from the 20s-50s and the 80-2000s seem to be associated with a higher pca3 value while songs from the middle decades (60s and 70s) have a lower pca3 value, causing a visible dip in the plot.]**
+
+*Hint*: this problem asks you to use `ggplot()` specifically to make the scatterplots; the class 17 accompanying `R` demo walked through how to do this by adding your principal components to the same dataset with the `decades` variable for plotting.
+
+
+__2(d) [10 pts]__ Professor Slinger found your part __(c)__ observations interesting, but he rightfully notes that the principal components aren't directly interpretable by themselves, thereby limiting the observations you can make about the data.  So, we'll explore in what ways the **first two principal components** are related to the original variables in the data.
+
+Use `fviz_pca_biplot()` to make a biplot of the first two principal components, as shown in the class 17 `R` demo.  When you make this plot, unfortunately, it may be difficult to see some of the variable names on the arrows; if that is the case for you, put `repel = TRUE` within `fviz_pca_biplot()`, such that you can see all of the variable names.  Additionally, color the points by the `decades` variable using the `habillage` argument.  An annoying aspect of `fviz_pca_biplot` is that we need to deliberately specify the shape to avoid it changing the shape by the group variable (in this case `decades`).  You can use the the commented out code as a template.  
+
+After you've made the biplot, discuss, in a paragraph, in what ways `decades` is associated with the original variables in the data.
+
+```{r}
+fviz_pca_biplot(spotify_pca,
+                # Set the color of the points to decades variable:
+                habillage = spotify$decades, pointshape = 19)
+```
+
+
+**[The 20s-30s are positively associated with liveness and speechiness and negatively associated with duration_ms, popularity, and energy. The 40s-50s are positively associated with acousticness and instrumentalness and negatively associated with valence, danceability, and tempo. The 60s-70s are positively associated with duration, intstrumentalness, and populaity, and negatively associated with liveness, speechiness, and valence. The 80-200s are positively associated with popularity, energy, and tempo, an tempo and negatively associated with liveness, acousticness, and instrumentalness.]**
+
+
+__2(e) [10 pts]__ In part __(c)__ you should have used the `prcomp()` function to create the principal components.  Having done that, you should be able to edit and uncomment the following line of code:
+
+```{r}
+spotify_pca$rotation
+```
+
+where `spotify_pca` is the object appropriately defined by `prcomp()`.  You should be able to see an 11-by-11 matrix, where the rows correspond to the original variables and the columns correspond to the principal components.  Each column represents the *linear combination* of the variables that each principal component represents (as discussed in class).  In particular: each number tells you how the variable is associated with the principal component.  If a number is positive, that means songs with a higher value of that principal component also tend to have a higher value of that variable.  Similarly, if a number is negative, that means songs with a *lower* value of that principal component tend to have a higher value of that variable.
+
+Now look back at the first plot you made in part __(c)__, which visualizes the first two principal components (colored by `decades`).  Given these details about the rotation matrix, discuss, in a paragraph, in what ways `decades` is associated with the original variables in the data.  Be sure to explain how you used the rotation matrix output to arrive at your answer.
+
+**[Given the info in the rotation matrix, songs with a higher value of pca1 also tend to have higher values of danceability, duration_ms, tempo, valence, and popularity. Because the later decades are associated with a higher pca1 value, then that means the later a song was released, the higher the values of danceability, duration_ms, tempo, valence, and popularity are. Songs with a higher value of pca2 also tend to have higher values of acousticness, duration_ms, instrumentalness, and popularity. The plot in c revealed that the variance of pca2 within songs released in the same decade decreases as we get to the later decades. This means that earlier decades' association with the above variables tends to vary widely from no association to a high association while later decades associations tend to converge to a medium value]**
+
+
+***
+***
+
+
+# Problem 3: Survey [3 pts]
+
+How long would you estimate you spent, in total, working on this assignment?
+
+**[3 hrs]**

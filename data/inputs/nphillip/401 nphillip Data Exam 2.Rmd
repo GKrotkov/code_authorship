@@ -1,0 +1,202 @@
+---
+title: "36-401 DA Exam 2"
+author: "Noelani Phillips (nphillip)"
+date: "November 30, 2023"
+output:
+  pdf_document:
+    latex_engine: xelatex
+  word_document: default
+linestretch: 1.241
+fontsize: 12pt
+---
+
+
+```{r setup, include = FALSE}
+# By default, do not include R source code in the PDF. We do not want to see
+# code, only your text and figures.
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r, include = FALSE}
+library(alr4)
+library(tidyverse)
+library(tidyr)
+library(ggplot2)
+library(data.table)
+library(broom)
+Rateprof = Rateprof
+```
+
+# Introduction
+
+Students at the University of Southern North Dakota at Hoople (USND) are able to submit ratings for their professors on third party websites, allowing students to use other students ratings of certain professors when considering which classes they would like to take. It is reasonable to theorize that students would have certain biases when carrying out these ratings such as a preference for easier classes, a gender bias, an attractiveness bias, or a preference for certain disciplines.The Vice Provost suspects that these biases may create potential associations between quality ratings and gender/attractiveness/easiness/discipline. They also suspect that the relationship between the easiness and quality ratings of a class may be affected by the gender or discipline of the instructor, further complicating the validity of ratings. In our analysis, we hope to determine whether quality ratings are associated with gender, attractiveness, class easiness, and discipline, and if so, what the magnitude of this association may be. Additionally, we hope to determine whether and how the relationship between an instructor's ratings and the difficulty of their class is impacted by the gender of the instructor and their respective discipline. Answering these questions will help us to advise the Vice Provost on whether or not ratings should play a role in determining promotion decisions for professors. Data was collected from ratings of 364 professors with over 10 ratings on a third-party ratings website. Students were able to rate their professors on a continuous scale from 1 to 5 in terms of quality, helpfulness, clarity, and easiness and also indicated their level of interest in the class on the same scale. The analysis determined that easiness ratings, attractiveness, and gender are all associated with quality ratings. Additionally, the analysis concluded that the relationship between easiness and quality ratings is not impacted by gender or discipline.
+
+
+# Exploratory Data Analysis & Data Summary
+
+Our variables of interest are:
+
+`quality`: the average quality rating of the professor, between 1, worst, to 5, best.
+
+`gender`: the gender of the professor (male or female)
+
+`discipline`: the discipline of the professor (`Hum`= Humanities, `SocSci` = Social Sciences, `STEM` = Science, Technology, Engineering and Mathematics, `Pre-prof` = Professional Training)
+
+`easiness`: the average easiness rating, between 1, hardest, to 5, easiest.
+
+`pepper`: whether the professor is rated as attractive or not (`yes` = Attractive, `no` = Not Attractive)
+
+## Univariate and Bivariate EDA
+
+```{r, fig.width=5, fig.height=4, fig.cap="The distribution of instructor quality ratings is slightly left skewed with a mean of 3.575. Most professors receive mid-high ratings, however a few recieved very low ratings."}
+hist(Rateprof$quality, xlab = "Avg Quality Rating from 1-5", main = "")
+```
+
+```{r, fig.width=5, fig.height=3, fig.cap="The distribution of instructor easiness ratings is symmetric and approximately normal, with a mean of 3.13 and a standard deviation of 0.778."}
+hist(Rateprof$easiness, xlab = "Avg Easiness Rating from 1-5", main = "")
+```
+
+```{r, fig.width=5, fig.height=3, fig.cap="There are more male professors than female professors, however the counts are relatively even."}
+barplot(table(Rateprof$gender), names = c("Female", "Male"), xlab = "Gender", ylab = "Count",  main = "")
+```
+
+```{r, fig.width=3, fig.height=3, fig.cap="The vast majority of professors are rated as not attractive."}
+barplot(table(Rateprof$pepper), names = c("No", "Yes"), xlab = "Attractive?", ylab = "Count",  main = "")
+```
+
+```{r, fig.width=5, fig.height=4, fig.cap="The most popular discipline among professors is humanities, with STEM coming in second. Social Sciences and Pre-Professional are the least popular disciplines, with the latter having slightly less professors."}
+barplot(table(Rateprof$discipline), names = c("Hum", "SocSci", "STEM", "Pre-prof"), xlab = "Discipline", ylab = "Count",  main = "")
+```
+
+
+```{r, fig.width=4, fig.height=3.5, fig.cap="The scatterplot of quality vs easiness ratings reveals that the two variables have a positive, linear relationship."}
+plot(quality~easiness, data = Rateprof)
+```
+
+```{r, fig.width=5, fig.height=3, fig.cap="Both genders have a similar median rating and spread of ratings."}
+boxplot(quality~gender, data = Rateprof)
+```
+
+```{r, fig.width=5, fig.height=3, fig.cap="Attractive professors have a higher median rating around 4.5 and the range of ratings is smaller, while less attractive professors have a lower median rating around 3.5 and the range of ratings is much larger."}
+boxplot(quality~pepper, data = Rateprof)
+```
+
+```{r, fig.width=5, fig.height=3, fig.cap="Ratings across all 4 disciplines tend to be pretty similar, with social sciences having a slightly higher median rating and STEM professors having a slightly lower median rating."}
+plot(quality~discipline, data = Rateprof)
+```
+
+The non-normal distribution of quality ratings may be a potential concern for linear modeling. However, transforming the response will make interpretation in the context of the research question more difficult. Because the distribution is only slightly skewed, a transformation will not be considered. 
+
+# Methods
+
+Our first research question is concerned with associations between gender, easiness, attractiveness, discipline and quality ratings. So, we fit a linear model using the former four variables as predictors and quality ratings as the response.We then conduct t-tests in order to determine whether beta coefficients associated with the predictors are significant in the model. This is done because the resulting test statistics and p-values will help us to answer the question of whether a given predictor is significantly associated with the response as well as what the magnitude of that association is. We assume that:
+
+1. Our sample is independent and identically distributed.
+2. The errors are normally distributed with mean 0 and constant variance
+
+```{r, include=FALSE}
+lm1 <- lm(quality ~ gender + pepper + easiness + discipline, data = Rateprof)
+out1 <- summary(lm1)
+```
+
+```{r, fig.width=5, fig.height=3.6, fig.cap = "Relatively even spread and lack of pattern in the residual plot for our first linear model indicate assumptions are not violated."}
+res <- resid(lm1)
+plot(fitted(lm1), res,
+main = "", xlab = "fitted values", ylab = "residuals")
+abline(0,0, col = "red")
+```
+
+```{r, fig.width=5, fig.height=3.5, fig.cap= "A QQ plot of our linear model's errors reveals a heavy left tail and a light right tail, indicating left skewness and non-normality."}
+qqnorm(residuals(lm1), main = "")
+qqline(residuals(lm1))
+```
+
+Although the spread from left to right on the residual plot could be improved, the analysis will assume that the constant variance and linearity assumptions have not been violated. However, the tails of the model Q-Q plot reveal that the normality of errors assumption may be violated. The analysis will proceed but this will affect the validity of the ensuing confidence intervals and T-test. 
+
+Our second research question is concerned with determining how gender and discipline affect the relationship between quality and easiness ratings. So we fit two linear models, one with interactions and one without. The reduced model uses easiness, gender, and discipline as predictors of quality ratings while the full model adds interaction terms between easiness and gender and between easiness and discipline. This is done for the purpose of comparison. By comparing these two models with a Partial F-test, we will be able to determine whether any of the interactions between gender/discipline and easiness significantly affect the relationship between quality and easiness. If one or more is significant, further tests will be necessary to determine which interaction(s) is significant. The assumptions for an F-test are as follows:
+
+1. The irreducible errors are i.i.d normal with mean zero and variance sigma squared.
+
+```{r, include= FALSE}
+lmfull <- lm(quality ~ easiness + gender + discipline + easiness:gender + easiness:discipline, data = Rateprof)
+outfull<- summary(lmfull)
+
+lmreduced <- lm(quality ~ easiness + gender + discipline, data = Rateprof)
+outreduced<-summary(lmreduced)
+f_test <- anova(lmreduced, lmfull)
+```
+
+```{r, fig.width=5, fig.height=3.5, fig.cap= "A QQ plot of the full model's errors reveals a heavy left tail and a light right tail, indicating left skewness and some non-normality."}
+qqnorm(residuals(lmfull), main = "")
+qqline(residuals(lmfull))
+```
+
+The heavy tails of the full model Q-Q plot reveal that the normality of errors assumption may be violated. The analysis will proceed but this will affect the validity of the F-test.
+
+# Results
+
+The regression equation for the first model is as follows:
+
+$\hat{Q}$ = average quality ratings,
+$G_M$ = gender, male,
+$Pep_Y$ = Attractive, yes,
+$E$ = average easiness ratings,
+$D_{SS}$ = discipline, social sciences,
+$D_{STEM}$ = discipline, STEM,
+$D_{PP}$ = discipline, pre-professional,
+
+$$ \hat{Q}= \beta_0 + \beta_1G_M + \beta_2Pep_Y + \beta_3E + \beta_4D_{SS} + \beta_5D_{STEM} - \beta_6D_{PP} $$
+
+```{r, include=FALSE}
+var_names=names(coef(lm1))
+coef_vals=coef(lm1)
+```
+
+```{r, fig.width=5, fig.height=3, fig.cap="Table of regression coefficients for linear model."}
+data.table(Variables=var_names, `Regression Coefficients`=coef_vals)
+```
+
+We conduct a t-test for each of the predictors to determine if that specific variable is associated with average quality ratings. The Null and Alternative Hypothesis are as follows:
+
+$$ H_0: \beta_i = 0 \textrm{ } i \in [1,6] $$
+$$ H_A: \beta_i \neq 0 \textrm{ } i \in [1,6] $$
+For the beta coefficient associated with gender=male, we reject the null hypothesis at significance level alpha = 0.05 and conclude that gender is a significant predictor of quality ratings. $\beta_1 = 0.145$ , 95% C.I[0.0049, 0.2845], t(359) = 2.035, p = 0.0426. 
+
+For the beta coefficient associated with attractiveness=yes, we reject the null hypothesis at significance level alpha = 0.05 and conclude that attractiveness is a significant predictor of quality ratings, $\beta_2 = 0.655$ , 95% C.I[0.444, 0.867], t(359) = 6.101, p = 2.72e-09. 
+
+For the beta coefficient associated with average easiness ratings, we reject the null hypothesis at significance level alpha = 0.05 and conclude that easiness rating is a significant predictor of quality ratings, $\beta_3 = 0.568$ , 95% C.I[0.477, 0.660], t(359) = 12.2, p<2e-16.
+
+For the beta coefficients associated with the three non-humanities disciplines, we fail to reject the null hypothesis in all three cases at significance level alpha = 0.05 and conclude that discipline is not associated with quality ratings.
+
+$\beta_4 = 0.032$, 95% C.I[-0.162, 0.227], t(359) = 0.328, p = 0.743.  
+
+$\beta_5 = 0.171$, 95% C.I[-0.005, 0.347], t(359) = 1.912, p = 0.057. 
+
+$\beta_6 = -0.0231$, 95% C.I[-0.221, 0.175], t(359) = -0.229, p = 0.819
+
+The regression equations for the full and reduced models relating to the second research question are as follows:
+$$ \hat{Q}_{reduced}= \beta_0 + \beta_1E + \beta_2G_M + \beta_3D_{SS} + \beta_4D_{STEM} + \beta_5D_{PP} $$
+$$ \hat{Q}_{full}= \beta_0 + \beta_1E + \beta_2G_M + \beta_3D_{SS} + \beta_4D_{STEM} + \beta_5D_{PP} + \beta_6EG_M + \beta_7ED_{SS} + \beta_8ED_{STEM} + \beta_9ED_{PP} $$
+
+```{r, include=FALSE}
+var_names2=names(coef(lmfull))
+coef_valsfull=coef(lmfull)
+coef_valsreduced = c(coef(lmreduced), "NA", "NA", "NA", "NA")
+```
+
+```{r, fig.width=5, fig.height=3, fig.cap="Table of regression coefficients for linear model."}
+data.table(Variables=var_names2, `Coefs Full`=coef_valsfull, `Coefs Reduced` = coef_valsreduced)
+```
+To determine whether the coefficients associated with interactions between easiness and gender and easiness and discipline are significant, we conduct a Partial F-test with Null and Alternative hypotheses as defined below:
+
+$$ H_0: \beta_6 = \beta_7 = \beta_8 = \beta_9 = 0$$
+$$ H_A: \textrm{Not all } \beta_{6-9} = 0$$
+```{r}
+f_test
+```
+After conducting the Partial F-test, we fail to reject the null hypothesis that all of the additional betas in the full model are 0, F(4,360) = 0.2524, p-value = 0.9082. Further, the analysis determined that the relationship between easiness and quality is not significantly affected by gender or discipline. No further tests are necessary because none of the interactions were found to be significant.
+
+# Discussion
+
+The results of the analysis indicate that easiness ratings, attractiveness, and gender are all significant predictors of quality ratings, more specifically that they are positively associated with quality ratings. Male professors receive quality ratings that are on average, 0.145 points (95% C.I[0.0049, 0.2845]) higher than female professors, attractive professors receive quality ratings that are on average, 0.655 points (95% C.I[0.444, 0.867]) higher than unattractive professors, and each point increase in easiness ratings is associated with a predicted average increase of 0.568 points (95% C.I[0.477, 0.660]) in quality ratings, meaning that classes rated as easier tend to receive higher quality ratings. Discipline was not found to be a significant predictor of quality ratings despite theories that discipline preferences in students may influence their ratings of professors. This means that professors of social sciences, STEM, and pre-professional classes do not receive average quality ratings that are significantly higher or lower than humanities professors, which was our baseline category. However, there are two caveats. The first was that the normality assumption of the irreducible errors was violated, indicating that the confidence intervals, t-tests, and the partial f-test conducted in order to acquire these results may not be fully valid. The second is that the p-value for the coefficient associated with gender (p=0.0426) is very close to the significance level 0.05. In the same way, the p-value for the coefficient associated with the STEM discipline (p=0.057) was very close to the significance level from the opposite direction. While gender was deemed significant and discipline insignificant in this case, the evidence is weaker than for the two other significant predictors whose p-values were much smaller and the other insignificant predictors whose p-values were much larger. It is possible that gender may indeed not be associated with quality ratings as theorized in the EDA section and STEM professors may receive average quality ratings that are higher than humanities professors. In order to alleviate such issues, I recommend that the Vice Provost collect more data from the ratings website in order to increase the power of the statistical test. The results of the partial F-test between the full and reduced model reveal that the relationship between easiness and quality rating does not depend on the instructor’s gender and discipline. As is above, the validity of the F-test is undermined by the fact that the normality of irreducible errors assumption was violated. Because professor promotions and demotions should not be taken lightly and students do display attractiveness, easiness, and gender biases, I recommend that the Vice Provost either gather much more data and conduct the analysis again, or exercise extreme caution when using ratings as a factor in promotion decisions. 
+

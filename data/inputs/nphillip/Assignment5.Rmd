@@ -1,0 +1,434 @@
+---
+title: "36-315 Homework 5, Fall 2023"
+author: "Noelani Phillips"
+date: "Due Wednesday, Nov. 1, 2023 11:59pm"
+output:
+  pdf_document:
+  html_document:
+    toc: yes
+    toc_float: yes
+    code_folding: show
+urlcolor: blue
+---
+
+# Final Project Preliminaries and Regression
+
+
+***
+***
+
+
+***General instructions for all lab assignments***: 
+
++ Use this file as the template for your submission.  Be sure to write your name at the top of this page in the author section.
+
++ When writing out answers to questions, please put them in the section designated by **[PUT YOUR ANSWER HERE]** so that your answers are in bold to differentiate them from the problem statements.  Each answer must be supported by written statements (unless otherwise specified).  **Thus, even if you think your code output is self-explanatory, be sure to answer questions with written statements outside of code blocks.**
+
++ For your homework submission, generate an .html file and an .Rmd file (named as: [AndrewID]-315-hw01.Rmd -- e.g. "fsk-315-hw01.Rmd").  When you're done, submit it to Gradescope (a button taking you to the course's Gradescope page can be found on left side of the course's Canvas page).  Gradescope only accepts PDFs, so either knit to PDF (see Lab 0) or take a moment to convert your .html file to a PDF using https://html2pdf.com/ (or a similar converter).
+
++ Your file should contain the code to answer each question in its own code block.  Your code should produce plots/output that will be automatically embedded in the output (.html) file.  Your lab and homework files will include the template code chunks like the following:
+
+```{r}
+# PUT YOUR CODE AND PLOT HERE
+```
+
++ Although it's okay to discuss homework problems with other students, all of your homework (code, written answers, etc.) should be only your own.  Instances of identical, nearly identical, or copied homework will be considered cheating and plagiarism.  In other words, you must follow rules of academic integrity (as detailed in the syllabus).
+
+
+***
+***
+
+
+# Problem 1: Finding Data [30 pts]
+
+As discussed in class and the syllabus, you will be working on final projects throughout the rest of the semester, to be submitted during finals week.  [See here](http://www.stat.cmu.edu/capstoneresearch/#graphics) for many examples of last semester's finals projects.
+
+On Canvas (in the "Final Project" module on your course home page), I've included a file that outlines guidelines and requirements for the dataset you'll pick for the final project.  Read that file.  Then, based on those guidelines and requirements, describe __three potential datasets__ you are considering to work on for your project.  Obviously, you are not yet assigned to teams but this is meant to encourage each of you to search through and find datasets that you may find interesting to explore further.  In your homework submission, you must include the following information about each dataset:
+
+  + The name of the dataset.
+  + The source of the dataset.
+  + A link to the dataset.
+  + A short paragraph (3-6 sentences) explaining why you picked this dataset as a potential candidate for the final project.  Your paragraph should explain how the dataset satisfies the aforementioned guidelines/requirements, why you think the dataset is complex enough to explore at least three interesting questions, and why you are interested in the dataset.
+
+After you are assigned to teams, you will complete a similar exercise in the next homework - narrowing down your selection to just two potential datasets.  But for this homework assignment you must find __three potential datasets__.
+
+
+## Dataset 1 [10 pts]
+
++ Name of dataset:
+
+**[Secondary Mushroom Dataset]**
+
++ Source of dataset:
+
+**[UCI Machine Learning Repository]**
+
++ Link to dataset:
+
+**[https://archive.ics.uci.edu/dataset/848/secondary+mushroom+dataset]**
+
++ A short paragraph (3-6 sentences) explaining why you picked this dataset as a potential candidate for the final project.  Your paragraph should explain how the dataset satisfies the aforementioned guidelines/requirements, why you think the dataset is complex enough to explore at least three interesting questions, and why you are interested in the dataset.
+
+**[This dataset has a good mix of quantitative and qualitative variables, has a large number of observations (61069), and has not been used in a past project. The data is suitable for regression,indicating that some interesting eda related to correlation may be able to come out of it. Additionally, the research question of the associated paper is concerned with prediction, so I forsee some clustering-based graphics being interesting. Based on the sheer size of the data, I can focus on the attributes of the different types of mushrooms, compare figures between mushrooms of the same type, and create graphics related to how well these features predict whether a mushroom is edible or not]**
+
+
+## Dataset 2 [10 pts]
+
++ Name of dataset:
+
+**[US House Election Results]**
+
++ Source of dataset:
+
+**[Github TidyTuesday, originally from MIT Election Data and Science Lab]**
+
++ Link to dataset:
+
+**[https://github.com/rfordatascience/tidytuesday/blob/master/data/2023/2023-11-07/readme.md]**
+
++ A short paragraph (3-6 sentences) explaining why you picked this dataset as a potential candidate for the final project.  Your paragraph should explain how the dataset satisfies the aforementioned guidelines/requirements, why you think the dataset is complex enough to explore at least three interesting questions, and why you are interested in the dataset.
+
+**[This dataset is topical and has a good mix of quantitative and qualitative predictors. There are a decent number of observations, I'm not sure if it will be a problem that the data is going to be updated after this election cycle but I think it won't. I am interested in learning in a general way each party's performance in house elections over the past 50 years, and this dataset can answer that. It would also be complex enough to glean insight into voting turnout across different districts and the status of runoff elections.]**
+
+
+## Dataset 3 [10 pts]
+
++ Name of dataset:
+
+**[Simpsons Script Lines]**
+
++ Source of dataset:
+
+**[Data World]**
+
++ Link to dataset:
+
+**[https://data.world/data-society/the-simpsons-by-the-data]**
+
++ A short paragraph (3-6 sentences) explaining why you picked this dataset as a potential candidate for the final project.  Your paragraph should explain how the dataset satisfies the aforementioned guidelines/requirements, why you think the dataset is complex enough to explore at least three interesting questions, and why you are interested in the dataset.
+
+**[This dataset has less variables than the previous two, but there are good qualitative variables (character, speaking line, location) and quantitative (length, episode number, etc). The simpsons is one of the longest running animated series so there is no lack of data to pull from. I expect to be able to answer questions related to time (ex: how has the distribution of lines across characters changed across different seasons), questions related to character interactions (which characters talk to each other the most), and location, (which locations are the most lines said in)]**
+
+
+***
+***
+
+
+# Problem 2: Forming Final Project Teams [15 pts]
+
+The coming week and a half, we'll get everyone organized into final project teams.  All teams will consist of 3-4 students.  You can, among yourselves, organize a complete team of 3-4 students that you would like to work with for the final project (consider using the "Search for Teammates!" function on the course Piazza page, found in a pinned post - you can say what sorts of data you'd like to work with and perhaps find someone with similar interests), or you can form an incomplete team, which I will randomly pair with other incomplete teams to form a full team.  An incomplete team can be just you, a pair of students, or a trio that would like to have another member.
+
+In any case, you should fill out the Canvas quiz called "Final Project Group Status Survey", found in the assignment module alongside this assignment, before **Friday, November 3, 11:59pm** with the information on your current team's composition.  (Don't worry about it being submitted after the official assignment due date.  You're free to alter your team's composition until the last minute.)  This should be a free 15 points!
+
+
+***
+***
+
+
+For the rest of this assignment we will use a dataset on heart disease obtained from Kaggle. The original dataset is part of [the UCI Machine Learning Repository](https://archive.ics.uci.edu/ml/index.php).  The link to the dataset can be found [here](https://raw.githubusercontent.com/FSKoerner/Fall23-36315-data/main/heart.csv).  Descriptions of the dataset can be found [here](https://raw.githubusercontent.com/FSKoerner/Fall23-36315-data/main/heart_description.txt). More information is available on Kaggle [here](https://www.kaggle.com/ronitf/heart-disease-uci), but everything you need to know for this homework is in the Github links.
+
+Here is some code to read in the dataset:
+
+```{r}
+library(tidyverse)
+heart <- read.csv("https://raw.githubusercontent.com/FSKoerner/Fall23-36315-data/main/heart.csv")
+#ensure the categorical variables are factors
+heart$sex <- factor(heart$sex)
+heart$cp <- factor(heart$cp)
+heart$fbs <- factor(heart$fbs)
+heart$restecg <- factor(heart$restecg)
+heart$exang <- factor(heart$exang)
+heart$slope <- factor(heart$slope)
+heart$thal <- factor(heart$thal)
+heart$target <- factor(heart$target)
+```
+
+
+# Problem 3: Competing Regression Models and Inference [30 pts]
+
+In this problem we will assess the relationship between `age` and `oldpeak`.  The variable `oldpeak` has a complicated definition, and I don't want you to focus too much on the nuance of interpreting this variable---all you need to know is that a higher `oldpeak` variable is associated with worse heart health.
+
+
+__3(a) [9 pts]__ For this part, make three scatterplots. 
+
++ Make a scatterplot with `age` on the x-axis and `oldpeak` on the y-axis.  Add a linear regression line to the plot; the line should be in dark blue (which is the default for `ggplot`).  Don't add standard errors to the plot.
+
+```{r}
+ggplot(aes(x=age, y=oldpeak), data = heart) + geom_point() + 
+  geom_smooth(method = "lm", se = FALSE) + 
+  labs(title = "Scatterplot of ST depression and age with linear regression line", 
+       x = "age", y = "ST depression")
+```
+
++ Make a scatterplot with `age` on the x-axis and `oldpeak` on the y-axis.  Add a quadratic regression line to the plot; the line should be a color other than dark blue.  Don't add standard errors to the plot.
+
+```{r}
+ggplot(aes(x=age, y=oldpeak), data = heart) + geom_point() + 
+  geom_smooth(method = "lm", formula = y ~ poly(x, 2), se = FALSE, color = "pink") + 
+  labs(title = "Scatterplot of ST depression and age with quadratic regression line", 
+       x = "age", y = "ST depression")
+```
+
++ Make a scatterplot with `age` on the x-axis and `oldpeak` on the y-axis.  Add a loess-smoothed regression line to the plot; the line shouldn't be dark blue or the color you chose for the quadratic regression line.  Don't add standard errors to the plot.
+
+```{r}
+ggplot(aes(x=age, y=oldpeak), data = heart) + geom_point() + 
+  geom_smooth(method = "loess", se = FALSE, color = "red") + 
+  labs(title = "Scatterplot of ST depression and age with local regression line", 
+       x = "age", y = "ST depression")
+```
+
+Thus, for this part you need to make three scatterplots, all of which display `age` and `oldpeak`, but with different regression lines that are different colors.  After you've made your three plots, describe the trend suggested by each plot in 1-2 sentences.
+
+**[The linear plot suggests oldpeak increases in proportion to age, the quadratic plot suggests oldpeak increases but at a decreasing rate in comparison to age. The loess plot suggests that oldpeak remains constant, then increases and decreases in relation to age, which may indicate no relationship between the two variables.]**
+
+
+__3(b) [4 pts]__ If we wanted to examine the three different plots you made in part __(a)__, it could become tedious to have to look back and forth between three different plots.  When comparing different statistical models, it can often be helpful to plot a few fitted models on the same plot.  So, make another scatterplot with `age` on the x-axis and `oldpeak` on the y-axis, with the three regression lines you made in part __(a)__ all included on the same scatterplot.  Again, be sure that the regression lines are all different colors.
+
+```{r}
+ggplot(aes(x=age, y=oldpeak), data = heart) + geom_point() + 
+  geom_smooth(method = "lm", formula = y ~ poly(x, 2), se = FALSE, color = "pink") +
+  geom_smooth(method = "loess", se = FALSE, color = "red") + 
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Scatterplot of ST depression and age with regression lines", 
+       x = "age", y = "ST depression")
+```
+
+After you've made the plot, compare and contrast the estimated `oldpeak` predicted by the three regression lines.  In particular, answer the following:
+
++ For which ages do the regression lines most agree in their predictions for `oldpeak`?
++ For which ages do the regression lines most disagree in their predictions for `oldpeak`?
++ Are some regression lines more similar to each other than others?  If so, which ones?
+
+**[The lines agree the most from the ages of 40-65, all three lines crossing at around 40, 55, and 65. The lines disagree the most from the ages of 28-40 and 65-80. The linear and quadratic lines are very similar to each other while the loess line tends to differ more.]**
+
+
+__3(c) [4 pts]__ Professor B. Dalle is interested in the linear regression you plotted in parts __(a)__ and __(b)__.  In particular, she wants to know: is the linear trend you plotted in part __(a)__ statistically significant?  Provide some code to answer this question (in addition to answering the question itself).  Your code should produce coefficient estimates for a linear model.  After you've answered Professor Dalle's question, write out an interpretation of each coefficient estimate in the linear model.  Be sure that your interpretations are in terms of the context of the data (i.e., you mention the specific variables that are used in the linear model).
+
+```{r}
+linear_model <- lm(oldpeak~age, data = heart)
+outlm<- summary(linear_model)
+outlm$coefficients
+confint(linear_model)
+```
+
+**[The estimate for the intercept associated with the linear model is -0.42, with standard error 0.39708 95% CI [-1.201, 0.3614]. This coefficient is not statistically significant as indicated by the p-value of 0.2908 > significance level 0.05. The interpretation would be that patients with an age of 0 are expected to have a ST depression level of -0.42. The estimate for the coefficient of age is 0.02685, with standard error 0.007204 95% CI [0.01267, 0.041026]. This coefficient is statistically significant as indicated by the p-value of 0.000231685 < significance level 0.05. The interpretation would be that for a one year increase in age, the ST depression of a patient is predicated to increase by 0.02685.]**
+
+
+__3(d) [4 pts]__ Looking at your answer in part __(c)__, Professor Dalle gets confused.  She says, "it looks like this model is predicting that the average `oldpeak` for some people is negative, which doesn't even make sense.  Why is your model giving these nonsense estimates?"  Answer the following questions for Professor Dalle:
+
++ For what ages (in whole numbers) does the linear model estimate that `oldpeak` is negative?
++ Explain to Professor Dalle in 1-3 sentences why this model may estimate `oldpeak` to be negative for some ages, even though we don't observe any negative `oldpeak` measurements in the data.
+
+**[For people between the age of 0 and 15 (technically 15.6451), the linear model estimates that oldpeak is negative. This is likely to due incorrect extrapolation, the model doesn't have data on people in that age range so it incorrectly assumes that the trend of oldpeak decreasing as age decreases is applicable and predicts negative oldpeak values.]**
+
+*Hint*: If you're confused about this question because you don't think your model estimates `oldpeak` to be negative for anyone, this may suggest you need to go back and check your code for your linear regression (or carefully re-think your regression output).
+
+
+__3(e) [5 pts]__ Now Professor Dalle wants to assess if the linear regression assumptions are tenable for the linear regression you visualized in part __(a)__ and interpreted in part __(c)__.  For this part, make a residual-versus-fit plot **with a loess curve added to the plot** (with a 95\% confidence interval along the smoother).  Then, interpret the plot in terms of the equal variance and linearity assumptions. Specifically, answer these questions:
+
++ Do you think the equal variance assumption is Definitely Tenable, Somewhat Tenable, Somewhat Not Tenable, or Definitely Not Tenable?  Pick one of these four options, and then explain in 1-3 sentences.
+
++ Do you think the linearity assumption is Definitely Tenable, Somewhat Tenable, Somewhat Not Tenable, or Definitely Not Tenable?  Pick one of these four options, and then explain in 1-3 sentences.
+
+```{r}
+
+ggplot(linear_model, aes(x = .fitted, y = .resid)) +
+  geom_point() +
+  geom_hline(yintercept = 0) + labs(title = "Residual Plot") + 
+  geom_smooth(method="loess")
+```
+
+**[I think the linearity assumption is Somewhat Tenable because the spread of data from left to right is pretty even. However, there does seem to be a linear pattern most evidently in the negative residuals. I think the equal variance assumption is Definitely Not Tenable because the spread above and below the y=0 line is very uneven. Negative residuals tend to have way less spread, indicating that their variance is smaller than that of positive residuals.]**
+
+
+__3(f) [4 pts]__ Finally, Professor Dalle wants to assess the Normality assumption in linear regression.  This is equivalent to assessing if the residuals are Normally distributed.  Assess this assumption in two ways:
+
++ Make a plot that visualizes the marginal distribution of the residuals.
++ Conduct a statistical analysis that tests whether or not the residuals are Normally distributed.
+
+After you've done this, state whether you think the Normality assumption is Definitely Tenable, Somewhat Tenable, Somewhat Not Tenable, or Definitely Not Tenable.  Pick one of these four options, and then explain in 1-3 sentences.
+
+```{r}
+ggplot(heart, aes(sample=oldpeak)) +
+  stat_qq() + 
+  stat_qq_line()
+```
+
+**[Definitely not Tenable. The residuals deviate extremely from the normal line, especially the ones with negative values.]**
+
+
+***
+***
+
+
+# Problem 4: Transformations and Subsetting to Satisfy Modelling Assumptions [7 pts]
+
+Looking at the work you did in problem __3__, Professor Dalle becomes interested in the subset of the data where `peak` is *not* equal to zero.  The following code defines this subset for you:
+
+```{r}
+oldPeakNotZero <- heart %>% filter(oldpeak != 0)
+```
+
+
+__4(a) [3 pts]__ First, make two plots: one that visualizes the distribution of `oldpeak` within the `oldPeakNotZero` dataset, and one that visualizes the distribution of the *square root* of `oldpeak` within the `oldPeakNotZero` dataset.  Make sure your plots are appropriately labeled/titled/colored, such that it's clear which plot shows which distribution.
+
+After you've made your plots: which variable seems to be more plausibly Normally distributed in this dataset, `oldpeak` or the square root of `oldpeak`?
+
+```{r}
+ggplot(aes(x=oldpeak), data = oldPeakNotZero) + geom_bar(fill="pink", color="red") + 
+  labs(title = "Distribution of oldpeak within the dataset where oldpeak!=0", 
+       x = "oldpeak value", y = "frequency")
+ggplot(aes(x=sqrt(oldpeak)), data = oldPeakNotZero) + geom_bar(fill="pink", color="red") + 
+  labs(title = "Distribution of sqrt(oldpeak) within the dataset where oldpeak!=0", 
+       x = "oldpeak value", y = "frequency")
+```
+
+**[The square root of oldpeak seems to be more normally distributed in this dataset, although the difference is not too much.]**
+
+
+__4(b) [4 pts]__ Now make a scatterplot with `thalach` on the x-axis and either `oldpeak` or the square root of `oldpeak` on the y-axis (whichever you think is more Normally distributed, based on your answer in part __(a)__).  Be sure that your plot only visualizes the data for the `oldPeakNotZero` dataset.  Add a linear regression line to your scatterplot, without confidence intervals.  After you've made your plot, answer this: what is the estimated slope of the regression line you're visualizing?  Provide a number for this answer, and provide any code you used to arrive at your answer.
+
+```{r}
+ggplot(aes(x=thalach, y=sqrt(oldpeak)), data=oldPeakNotZero) + geom_point()+
+  geom_smooth(method = "lm", se=FALSE) + 
+  labs(title = "Scatterplot of sqrt(oldpeak) and thalach, with regression line", 
+       x = "thalach", y = "sqrt(oldpeak)")
+linear_model2 <- lm(sqrt(oldpeak)~thalach, data = oldPeakNotZero)
+coef(linear_model2)[2]
+```
+
+**[The estimated slope of the regression line is -0.00363.]**
+
+
+***
+***
+
+
+# Problem 5: Model Selection Behind the Scenes [15 pts]
+
+Professor A. Tobin has been trying to make scatterplots for a while and is getting confused.  He ended up making the following plots below.  All four plots make the following specifications:
+
++ `x = chol`
++ `y = thalach`
++ `color = target`
++ `shape = sex`
+
+The only difference among the four plots are the regression lines visualized; plot 1 shows one regression line, plot 2 and plot 3 show two regression lines, and plot 4 shows four regression lines.  Compare and contrast the code Professor Tobin wrote for these four plots, and then answer the following questions.
+
+```{r, message = FALSE, warning = FALSE}
+library(tidyverse)
+#plot1 code
+plot1 <- ggplot(heart,
+	aes(x = chol, y = thalach)) +
+geom_point(aes(color = target, shape = sex)) +
+geom_smooth(method = lm, se = FALSE) + labs(title = "Plot 1")
+#plot2 code
+plot2 <- ggplot(heart,
+	aes(x = chol, y = thalach, color = target)) +
+geom_point(aes(shape = sex)) +
+geom_smooth(method = lm, se = FALSE) + labs(title = "Plot 2")
+#plot3 code
+plot3 <- ggplot(heart,
+	aes(x = chol, y = thalach, shape = sex)) +
+geom_point(aes(color = target)) +
+geom_smooth(method = lm, se = FALSE) + labs(title = "Plot 3")
+#plot4 code
+plot4 <- ggplot(heart,
+	aes(x = chol, y = thalach, shape = sex, color = target)) +
+geom_point() +
+geom_smooth(method = lm, se = FALSE) + labs(title = "Plot 4")
+
+library(gridExtra)
+#arrange the plot
+grid.arrange(plot1, plot2, plot3, plot4)
+```
+
+
+__5(a) [4 pts]__ Professor Tobin understands that each regression line represents a regression between `thalach` (as the outcome) and `chol` (as the covariate/predictor); however, he doesn't understand why each plot shows different regression lines.  Describe in 1-3 sentences why this happens.  Then, for plot 2, describe to Professor Tobin what the regression lines that are being shown represent.
+
+**[Each plot has a different combination of the two variables target and sex in the ggplot and geom_point calls. Calling one of the above in the ggplot function treats it as a category by which to plot a separate regression line. Conversely, calling one of the above in the geom_point function treats it as an aesthetic category in order to visually discriminate between groups on the plot. Plot 2 shows the relationship between thalach and chol for the heart dataset, with each regression line representing that relationship for different targets (0 and 1). Then, within each target, the data is further separated by shape into different sex categories.**
+
+As an example: he understands that *plot 1 shows the regression between `thalach` and `chol` for the whole `heart` dataset*.
+
+
+__5(b) [3 pts]__ Now Professor Tobin has a pretty good idea what each regression line in plot 2 represents, but he doesn't understand what each regression line in plot 3 represents.  In other words: the two regression lines in plot 3 are the same color, so he doesn't understand which subset of data each line represents.
+
+Copy-and-paste the plot 3 code here, and then change it such that it's more clear what the two regression lines represent.  **Make sure that the regression lines in your new plot are the same regression lines visualized in plot 3.**  Then, after making your new plot, tell Professor Tobin what each line in the plot represents; i.e., tell him which subset of data the downward-sloping line represents, and then tell him which subset of data the almost-flat line represents.
+
+```{r}
+plot3copy <- ggplot(heart,
+	aes(x = chol, y = thalach, color = sex)) +
+geom_point(aes(shape = target)) +
+geom_smooth(method = lm, se = FALSE, aes(color = sex)) + labs(title = "Plot 3")
+plot3copy
+```
+
+**[Plot 2 shows the relationship between thalach and chol for the heart dataset, with each regression line representing that relationship for different sexes (0 and 1). Then, within each sex, the data is further separated by shape into different target categories.]**
+
+
+__5(c) [4 pts]__ Alright, Professor Tobin doesn't feel as lost anymore (and he thanks you for that), but the last thing he's confused about is plot 4.  Specifically, he doesn't understand what each of the four regression lines represent in plot 4.  Answer the following questions for Professor Tobin:
+
++ Which subset of data does the top blue line represent in plot 4?
++ Which subset of data does the bottom blue line represent in plot 4?
++ Which subset of data does the top red line represent in plot 4?
++ Which subset of data does the bottom red line represent in plot 4?
+
+It will be helpful for you to create **two scatterplots (with regression lines)** in the service of figuring out the answer to these questions.  Some of the following subsets of data may be helpful to you (however, some may not be):
+
+```{r}
+target1Data <- heart %>% filter(target == 1)
+target0Data <- heart %>% filter(target == 0)
+maleData <- heart %>% filter(sex == 1)
+femaleData <- heart %>% filter(sex == 0)
+```
+
+**In addition to answering the four questions above, be sure to include the two graphs you used to arrive at your answer.**  Make sure that your plots are appropriately titled/labeled so that Professor Tobin can understand what you are plotting.
+
+```{r}
+ggplot(target1Data,
+	aes(x = chol, y = thalach, color = sex)) +
+geom_point() +
+geom_smooth(method = lm, se = FALSE) + labs(title = "Plot 4 subsetted by Target=1")
+
+ggplot(target0Data,
+	aes(x = chol, y = thalach, color = sex)) +
+geom_point() +
+geom_smooth(method = lm, se = FALSE) + labs(title = "Plot 4 subsetted by Target=0")
+```
+**[The top blue line in plot 4 represents the subset of data where target = 1 and sex = 1. The bottom blue line represents the subset of data where target = 1 and sex = 0. The top red line represents the subset of data where target = 0 and sex = 0. The bottom red line represents the subset of data where target = 0 and sex = 1]**
+
+
+__5(d) [4 pts]__ Professor Tobin says, "Thank you so much for helping me figure out these plots.  After looking at these plots, I decided to run the following regression model:"
+
+```{r}
+summary(lm(thalach ~ chol*sex, data = heart))
+```
+
+Answer the following questions for Professor Tobin:
+
++ Which of the four plots (plot 1, plot 2, plot 3, or plot 4) is visualizing the regression model that Professor Tobin just ran?  Explain how you arrived at your answer in 1-2 sentences.
+
++ According to the above model, what is the estimated intercept for female subjects?  What is the estimated slope for female subjects?  (Your answer should be two numbers, with some short justification/explanation.)
+
++ According to the above model, what is the estimated intercept for male subjects?  What is the estimated slope for male subjects?  (Your answer should be two numbers, with some short justification/explanation.)
+
+$$ y = 148.62 + chol(0.0095-0.0375sex1) + 7.030213sex1 $$
+```{r}
+# PUT ANY NECESSARY CODE HERE
+```
+
+**[The 3rd plot. The model captures the relationship between thalach and chol by each category of sex, which is what the 3rd plot is aimng to do by including sex in the ggplot function. The estimated (intercept,slope) for female subjects is (148.62, 0.009579). The estimated (intercept, slope) for male subjects is (155.652152,-0.027961). Justification for both is in the equation of the regression line above.]**
+
+
+***
+***
+
+
+# Problem 6: Survey [3 pts]
+
+How long would you estimate you spent, in total, working on this assignment?
+
+**[4 hours]**
+
+

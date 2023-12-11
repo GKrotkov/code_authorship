@@ -1,0 +1,368 @@
+---
+title: "36-315 Homework 8, Fall 2023"
+author: "Noelani Phillips"
+date: "Due Thursday, Nov. 30, 2023 11:59pm"
+output:
+  pdf_document:
+  html_document:
+    toc: yes
+    toc_float: yes
+    code_folding: show
+urlcolor: blue
+---
+
+
+# Final Project EDA and Time Series
+
+
+***
+***
+
+
+***General instructions for all homework assignments***: 
+
++ Use this file as the template for your submission.  Be sure to write your name at the top of this page in the author section.
+
++ When writing out answers to questions, please put them in the section designated by **[PUT YOUR ANSWER HERE]** so that your answers are in bold to differentiate them from the problem statements.  Each answer must be supported by written statements (unless otherwise specified).  **Thus, even if you think your code output is self-explanatory, be sure to answer questions with written statements outside of code blocks.**
+
++ For your homework submission, generate an .html file and an .Rmd file (named as: [AndrewID]-315-hw01.Rmd -- e.g. "fsk-315-hw01.Rmd").  When you're done, submit it to Gradescope (a button taking you to the course's Gradescope page can be found on left side of the course's Canvas page).  Gradescope only accepts PDFs, so either knit to PDF (see Lab 0) or take a moment to convert your .html file to a PDF using https://html2pdf.com/ (or a similar converter).
+
++ Your file should contain the code to answer each question in its own code block.  Your code should produce plots/output that will be automatically embedded in the output (.html) file.  Your lab and homework files will include the template code chunks like the following:
+
+```{r}
+# PUT YOUR CODE AND PLOT HERE
+```
+
++ Although it's okay to discuss homework problems with other students, all of your homework (code, written answers, etc.) should be only your own.  Instances of identical, nearly identical, or copied homework will be considered cheating and plagiarism.  In other words, you must follow rules of academic integrity (as detailed in the syllabus).
+
+
+***
+***
+
+
+# Problem 1: Scheduling Group Presentations [6 pts]
+
+For this problem, you should once again fill out a Canvas Quiz, this time titled "Final Project Scheduling", by Thursday, Nov. 30, 11:59pm.  In it, you'll specify what times you're available for your group final project presentation (see the rubric on the course Canvas page) during the reading day, Wednesday, Dec. 13.  Specify your availability only, not that of your entire group; we'll figure the rest out.  Mark all times during which you're available, but not, for example, times during which you have a make-up exam, recitation/review session for another class, or other inflexible commitment.  If the group as a whole has no coincident time available that Wednesday, I'll reach out to schedule your presentation for another day that week.
+
+Currently, presentations will be via Zoom for individuals already home for break, but I'm going to try to book a room for any group members still present in Pittsburgh to present in-person.  I will update with developments on location.
+
+
+***
+***
+
+
+#  Problem 2: EDA for Final Project [28 pts]
+
+For this problem, all you need to do is turn in one plot using whichever dataset your team chose for the final project.  The plot can be any visual of your choice, but it must meet these three requirements:
+
++ At a minimum your graph must display three variables.  (It can even display more, if you prefer.)
++ Be sure that your plot is appropriately titled and labeled such that it is clear what you are plotting.
++ Your graph should answer a question about your dataset that's unique among your teammates.  Thus, all your teammates should make **meaningfully distinct** graphs (i.e., certainly not graphs of the same exact set of variables), and each of your graphs should answer a different question for the dataset.  Thus, you'll need to discuss with your team which plots you all plan to make (and more generally, how you will divide up the work for your final project).
+
+```{r}
+library(countrycode)
+library(tidyverse)
+library(ggnewscale)
+library(ggplot2)
+library(ggseas)
+library(geomtextpath)
+futbol = read_csv2("./2021-2022 Football Player Stats.csv")
+extra_match = c("Africa", "Africa", "Europe", "Africa", "Africa", "Americas", "Americas", "Europe", "Africa", "Europe", "Europe", "Africa", "Africa", "Europe", "Europe", "Americas", "Africa", "Americas", "Europe", "Africa", "Europe", "Europe", "Americas", "Asia", "Europe", "Africa", "Europe", "Europe", "Africa", "Americas", "Europe", "Africa", "Africa")
+names(extra_match) = c("ALG", "ANG", "BUL", "CGO", "CHA", "CHI", "CRC", "CRO", "CTA", "DEN", "ENG", "EQG", "GAM", "GER", "GRE", "GRN", "GUI", "HON", "KVX", "MAD", "NED", "NIR", "PAR", "PHI", "POR", "RSA", "SCO", "SUI", "TOG", "URU", "WAL", "ZAM", "ZIM")
+
+extra_match2 = c("Algeria", "Angola", "Bulgaria", "Congo", "Chad", "Chile", "Costa Rica", "Croatia", "Central African Republic", "Denmark", "England", "Equatorial Guinea", "Gambia", "Germany", "Greece", "Grenada", "Guinea", "Honduras", "Kosovo", "Madagascar", "Netherlands", "Northern Ireland", "Paraguay", "Philippines", "Portugal", "South Africa", "Scotland", "Switzerland", "Togo", "Uruguay", "Wales", "Zambia", "Zimbabwe")
+names(extra_match2) = c("ALG", "ANG", "BUL", "CGO", "CHA", "CHI", "CRC", "CRO", "CTA", "DEN", "ENG", "EQG", "GAM", "GER", "GRE", "GRN", "GUI", "HON", "KVX", "MAD", "NED", "NIR", "PAR", "PHI", "POR", "RSA", "SCO", "SUI", "TOG", "URU", "WAL", "ZAM", "ZIM")
+futbol$Continent = countrycode(futbol$Nation, "iso3c", "continent", custom_match = extra_match)
+futbol$Country = countrycode(futbol$Nation, "iso3c", "country.name", custom_match = extra_match2)
+simpPos = function (x) {
+  if (x == "MFFW") {
+    return ("MF")
+  } else if (x == "FWMF") {
+    return ("FW")
+  } else if (x == "DFMF") {
+    return ("DF")
+  } else if (x == "FWDF") {
+    return ("FW")
+  } else if (x == "MFDF") {
+    return ("MF")
+  } else if (x == "DFFW") {
+    return ("DF")
+  } else if (x == "GKMF") {
+    return ("GK")
+  } else {
+    return (x)
+  }
+}
+futbol$ShoDist = futbol$ShoDist/10
+futbol$Pos_simplified = sapply(futbol$Pos, FUN = simpPos)
+
+world = map_data("world")
+```
+
+```{r}
+average_long = world %>% 
+  group_by(region) %>% 
+  summarise("average long" = mean(long))
+
+average_lat = world %>% 
+  group_by(region) %>% 
+  summarise("average lat" = mean(lat))
+colnames(average_lat) = c("Country", "lat")
+colnames(average_long) = c("Country", "long")
+
+futbol = merge(futbol,average_lat, "Country")
+futbol = merge(futbol, average_long, "Country")
+
+aggregate = futbol %>% 
+  group_by(Comp, Country, long, lat) %>% 
+  summarize(NumPlayers=sum(Country==Country))
+
+world <- map_data("world")
+ggplot(world, aes(x = long, y = lat)) +
+  geom_polygon(aes(group = group, fill = factor(1), color = factor(1))) + 
+  scale_fill_manual(values = c("white"), guide = "none") +
+  scale_color_manual(values = c("darkgrey"), guide = "none") +
+  coord_sf(xlim = NULL, 
+           ylim = NULL, expand = FALSE) +
+  new_scale_color() + 
+  geom_point(data = aggregate, 
+             aes(x = long, y = lat, color = Comp, size=NumPlayers), alpha = 1) +
+  labs(title = "Where Soccer Players are From Around the World by League", 
+       color = "League") +  xlab("Longitude") + ylab("Latitude") 
+
+
+
+ggplot() +
+  geom_map(data=world, map=world, aes(x=long, y=lat, map_id=region), color="grey", fill="white") +
+  geom_point(data=aggregate, mapping=aes(x=long, y=lat, color=Comp, size=NumPlayers)) +
+  labs(title="Where Players are From Around the World by League") + xlab("Longitude") + ylab("Latitude") + scale_size(range=c(1,3),
+             breaks=c(10,50,100),
+             labels=c("<10","<50",">100"),
+             name = "Number of Players",
+             guide="legend")
+
+
+  #geom_point(data=aggregate, aes(x=long, y=lat, color=Comp, size=NumPlayers), alpha=1)
+```
+
+```{r}
+library(countrycode)
+library(tidyverse)
+library(ggnewscale)
+library(ggplot2)
+library(ggseas)
+library(geomtextpath)
+futbol = read_csv2("./2021-2022 Football Player Stats.csv")
+extra_match = c("Africa", "Africa", "Europe", "Africa", "Africa", "Americas", "Americas", "Europe", "Africa", "Europe", "Europe", "Africa", "Africa", "Europe", "Europe", "Americas", "Africa", "Americas", "Europe", "Africa", "Europe", "Europe", "Americas", "Asia", "Europe", "Africa", "Europe", "Europe", "Africa", "Americas", "Europe", "Africa", "Africa")
+names(extra_match) = c("ALG", "ANG", "BUL", "CGO", "CHA", "CHI", "CRC", "CRO", "CTA", "DEN", "ENG", "EQG", "GAM", "GER", "GRE", "GRN", "GUI", "HON", "KVX", "MAD", "NED", "NIR", "PAR", "PHI", "POR", "RSA", "SCO", "SUI", "TOG", "URU", "WAL", "ZAM", "ZIM")
+
+extra_match2 = c("Algeria", "Angola", "Bulgaria", "Congo", "Chad", "Chile", "Costa Rica", "Croatia", "Central African Republic", "Denmark", "England", "Equatorial Guinea", "Gambia", "Germany", "Greece", "Grenada", "Guinea", "Honduras", "Kosovo", "Madagascar", "Netherlands", "Northern Ireland", "Paraguay", "Philippines", "Portugal", "South Africa", "Scotland", "Switzerland", "Togo", "Uruguay", "Wales", "Zambia", "Zimbabwe")
+names(extra_match2) = c("ALG", "ANG", "BUL", "CGO", "CHA", "CHI", "CRC", "CRO", "CTA", "DEN", "ENG", "EQG", "GAM", "GER", "GRE", "GRN", "GUI", "HON", "KVX", "MAD", "NED", "NIR", "PAR", "PHI", "POR", "RSA", "SCO", "SUI", "TOG", "URU", "WAL", "ZAM", "ZIM")
+futbol$Continent = countrycode(futbol$Nation, "iso3c", "continent", custom_match = extra_match)
+futbol$Country = countrycode(futbol$Nation, "iso3c", "country.name", custom_match = extra_match2)
+simpPos = function (x) {
+  if (x == "MFFW") {
+    return ("MF")
+  } else if (x == "FWMF") {
+    return ("FW")
+  } else if (x == "DFMF") {
+    return ("DF")
+  } else if (x == "FWDF") {
+    return ("FW")
+  } else if (x == "MFDF") {
+    return ("MF")
+  } else if (x == "DFFW") {
+    return ("DF")
+  } else if (x == "GKMF") {
+    return ("GK")
+  } else {
+    return (x)
+  }
+}
+futbol$ShoDist = futbol$ShoDist/10
+futbol$Pos_simplified = sapply(futbol$Pos, FUN = simpPos)
+
+world = map_data("world")
+
+futbol$Goals = as.numeric(futbol$Goals)
+futbol$`G/SoT` = as.numeric(futbol$`G/SoT`)
+futbol$Shots = as.numeric(futbol$Shots)
+
+
+noGoalie = filter(futbol, Pos_simplified=="DF" | Pos_simplified=="FW" | Pos_simplified == "MF")
+noGoalieorZero = filter(noGoalie, ShoDist!=0)
+
+
+meanDF = median(filter(futbol, Pos_simplified== "DF")$ShoDist)
+meanFW = median(filter(futbol, Pos_simplified== "FW")$ShoDist)
+meanMF = median(filter(futbol, Pos_simplified== "MF")$ShoDist)
+meanGK = median(filter(futbol, Pos_simplified== "GK")$ShoDist)
+
+lines = c(6, 18.5, 57.5)
+groupcolors = c("salmon", "turquoise", "mediumorchid1")
+noGoalieorZero %>% ggplot(aes(x = ShoDist)) +
+geom_density(aes(fill = Pos_simplified), alpha = 0.5, adjust = 1) +
+  geom_textvline(xintercept = 6, label = "goal line", hjust = 0.8,
+               linetype = "dashed", vjust = 1.3, color = "black") +
+  geom_textvline(xintercept = 18.5, label = "penalty line", hjust = 0.8,
+               linetype = "dashed", vjust = 1.3, color = "black") +
+  geom_textvline(xintercept = 57.5, label = "center line", hjust = 0.8,
+               linetype = "dashed", vjust = 1.3, color = "black") +
+  scale_fill_discrete(name = "Position", labels = c("Defender", "Forward", "Midfielder")) + 
+  labs(title = "Distribution of Shot Distance across Player Position", x = "Shot Distance (Yards)", y = "Density")  
+
+```
+
+
+After you've made your plot, within a couple paragraphs: 
+
+- specify what the scientific question of interest is that this graph answers;
+- explain and interpret the plot;
+- discuss why you think this plot is particularly informative for the kind of question you aimed to address.
+
+**[How does the demographic of a player vary among different player positions in different leagues? This plot visualizes where players of different leagues are from in the world. I couldn't figure this out in time but I'd like to change the size of the points to reflect the aggregate number of players from that country in the same league so clusters of players from the same and from different leagues can be seen. I think this plot is informative because it shows countries that have a large number of players as well as the distribution of players across the world from different leagues. For example, we may be able to see that a large number of players from Ligue 1 come from African countries, or that very little players from any league come from Oceania.]**
+
+The best way to complete this question is to take a few days to think about your dataset (possibly discussing with your teammates) and make a few plots that you think are interesting, and then only submit your best plot for this question.  You **should not** just try to make an arbitrary multivariate graph as quickly as possible to complete this problem, because if we think your graph/question/interpretation is not well-motivated given the goals of your project, we'll deduct substantial points for this problem.  After this homework (or before), you should share your graph with your team, so you also wouldn't want to make a graph that you'd be embarrassed to show your teammates.
+
+
+***
+***
+
+
+# Problem 3: Moving Averages [39 pts]
+
+Let's return where we left off with the data from the [NYC Citi Bike](https://www.citibikenyc.com/) program from lab 9.  If you want refreshing, [this page](https://www.citibikenyc.com/system-data) has details about the various datasets that they have available.  We already studied some basic EDA summaries and a bit of the ACF behavior.  Let's read in the data and apply the same transformations we did in lab to get back to the data objects we had by the end.
+
+```{r, warning = F, message = F}
+library(tidyverse)
+bike_data <- read_csv("https://raw.githubusercontent.com/FSKoerner/Fall23-36315-data/main/bikeData.csv")
+
+bike_data <- bike_data %>%
+  mutate(start.date = as.Date(start.date, format = "%m/%d/%y"))
+
+trips_per_day <- bike_data %>%
+  group_by(start.date) %>%
+  summarize(n_trips = n())
+
+trips_per_day_usertype <- bike_data %>%
+  group_by(start.date, usertype) %>%
+  summarize(n_trips = n())
+```
+
+Now let's visualize some moving averages for the NYC bike dataset.
+
+
+__3(a) [12 pts]__ Make a moving average plot for the `trips_per_day` dataset.  You'll need to install (and load) the `ggseas` library to do this.  Your plot should use the functions `ggplot()`, `geom_line()`, and `stat_rollapplyr()`.  Be sure that the output from `geom_line()` and `stat_rollapplyr()` are different colors so that the plot is easier to read.  Furthermore, within `stat_rollapplyr()`, set `align = "left"`, and choose a `width` that you think makes the most sense for this dataset.  In particular, choose a `width` that fits the data well and is interpretable for this dataset.  
+
+*Hint*: the measurements for this dataset are made on a daily basis.  In the class 19 `R` Demo, I chose `width = 12` because we were working with monthly measurements, and thus `width = 12` corresponded to a years' worth of data.  However, `width = 12` doesn't have as much meaning for the NYC Citi Bike dataset.
+
+```{r}
+trips_per_day %>% 
+  ggplot(aes(x = start.date, y = n_trips)) + 
+  geom_line(color="red") +
+  stat_rollapplyr(width = 30, align = "left") +
+  labs(x = "Start Date", y = "Number of Trips", 
+       title = "Width = 30")
+```
+
+After you've made your plot, discuss in 1-2 sentences why you chose this particular `width` value for your plot. (Don't worry describing the moving average plot; just discuss the `width` value you chose.)
+
+**[I chose width = 30 because measurements are on a daily basis so setting width=30 would plot the average of a month worth of data.]**
+
+
+__3(b) [12 pts]__ Repeat part __(a)__ (i.e., copy-and-paste your plot code here), and then make the following changes:
+
++ Make two moving average lines, one for `usertype = Customer` and one for `usertype = Subscriber`, with different colors.  This will require you to use the `trips_per_day_usertype` dataset instead of the `trips_per_day` dataset, as well as ensure that the lines are colored by `usertype`.
++ In your plot, only display the moving average lines and **not** the raw time series lines.  I.e., in part __(a)__ you displayed both the raw time series line and the moving average line; here, your plot should display just the two moving average lines, one for each `usertype`.
+
+```{r}
+trips_per_day_usertype %>% 
+  ggplot(aes(x = start.date, y = n_trips, color = usertype)) + 
+  stat_rollapplyr(width = 30, align = "left") +
+  labs(x = "Start Date", y = "Number of Trips", 
+       title = "Width = 30")
+```
+
+After you've made your plot, interpret it in 1-3 sentences.  
+
+**[In 2019, the number of trips made by subscribers is much larger than the number of trips made by customers, trips for consumers of both types spiked during the summer months and decreased during the winter months. At the onset of the pandemic, the number of customer trips increased to match the decreasing number of subscriber trips as a number of users likely cancelled their subscriptions since they believed it would go to waste. By the summer of 2020, the number of subscriber trips had began to increase again and the number of customer trips leveled off then decreased back to its former level by 2021.]**
+
+*Note*: the comparison you're making here is very similar to the comparison you made in problem __2(c)__.  Arguably, it's much easier to make this comparison here than it was in __2(c)__.
+
+
+
+__3(c) [15 pts]__ There is a whole literature on different moving averages; for example, we discussed weighted moving averages and cumulative moving averages in class.  In this problem, we'll work with a special kind of weighted moving average that's commonly used in finance: an [exponential moving average](https://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average) (EMA).
+
+The idea of EMAs is to upweight nearby time periods and downweight far away time periods when computing the moving average.  In this part, you must compute the EMA in the `trips_per_day` dataset (i.e., ignoring `usertype`), and then plot that EMA on top of the raw time series.  An EMA is defined in the following way:
+
++ For the first time period, $t = 1$, set $S_1 = Y_1$, where $S_t$ is the EMA at time point $t$, and $Y_t$ is the outcome at time point $t$ (in our case, `n_trips`).
++ For the next time periods ($t > 1$), define $S_t = \alpha Y_t + (1- \alpha) S_{t-1}$ for some constant $\alpha$.  Typically, people set $\alpha = 2/(h + 1)$, where $h$ is the size of the window (i.e., the `width` you specified in part __(a)__).
+
+Luckily, `trips_per_day` should already be ordered by `start.date`, which will make computing the EMA easier.  Below is some template code to get you started with computing the EMA; you must alter this code, based on the above methodology for computing the EMA:
+
+```{r}
+# first, define EMA in the dataset
+ trips_per_day$ema <- vector(length = nrow(trips_per_day))
+# initialize the first EMA
+ trips_per_day$ema[1] <- trips_per_day$n_trips[1]
+
+# define alpha
+ alpha <- 2/(30+1) 
+# define the remaining EMAs
+ for (i in 2:nrow(trips_per_day)){
+  trips_per_day$ema[i] <- alpha*trips_per_day$n_trips[i] + (1-alpha)*trips_per_day$ema[i-1]
+ }
+```
+
+After you've altered the above code such that `ema` is defined, create a plot with `n_trips` on the y-axis and `start.date` on the x-axis (similar to problem __2(b)__), as well as a line denoting the EMA.  When making your plot, be sure that the raw time series and EMA are different colors.  For this part, all you have to do is create the plot.
+
+```{r}
+trips_per_day %>% 
+   ggplot(aes(x = start.date, y = n_trips)) + 
+  geom_line(aes(x=start.date, y = ema), color = "red") +
+  stat_rollapplyr(width = 30, align = "left") +
+  labs(x = "Start Date", y = "Number of Trips", 
+       title = "Width = 30")
+```
+
+
+***
+***
+
+
+# Problem 4: Seasonal Decompositions [24 pts]
+
+
+__4(a) [12 pts]__ Using the `ggsdc()` function in the `ggseas` library, create a seasonal decomposition plot for `trips_per_day`.  Within the `ggsdc` function, there are two arguments, `frequency` and `s.window`.  The `frequency` argument is basically the same as the `width` argument in the `stat_rollapplyr()` function, so set `frequency` equal to the value you set `width` to in problem __3__.  Meanwhile, set `s.window = 7`.  (Thinking more deeply about what to set `s.window` to is outside the scope of this class, but I encourage final project teams working with time series data to consider it.)
+
+```{r}
+ggsdc(trips_per_day, aes(x=start.date, y=n_trips), frequency = 30, s.window = 7) + geom_line()
+```
+
+After you've made your plot, interpret it in 1-4 sentences.  In particular, be sure to discuss each of the four plots provided by the `ggsdc()` function.
+
+**[The observed trendline follows what we expect from the original distribution, peaks during the summer months and troughs during the winter months. The trend plot is a smoothed loess curve of the observed plot so it follows the same shape. The seasonality captures differences between our observed values and the trend, so it is more choppy in mid-late 2020 when the residuals are larger. The irregular plot captures the difference between our observed values, the trend, and the seasonality, so its peaks represent when extremely large spikes or dips in our original data occurred.]**
+
+
+__4(b) [12 pts]__ Now make a seasonal decomposition plot for `trips_per_day_usertype` with lines colored by `usertype`.  Within `geom_line()`, set `alpha` equal to something less than 1 to make it easier to see all the lines.  If you've made your plot successfully, the top plot should basically be the same plot you made in problem __1__ of lab 9, and the second plot should basically be the same plot you made in problem __3__ of this assignment.  Meanwhile, the other two plots should provide information you haven't seen yet, albeit related to the analyses done throughout lab 9 and this assignment.
+
+```{r}
+ggsdc(trips_per_day_usertype, aes(x=start.date, y=n_trips, color=usertype), frequency = 30, s.window = 7) + geom_line(alpha=0.5)
+```
+
+After you've made your plot, interpret the last two plots in the seasonal decomposition plot in 1-3 sentences.
+
+**[The seasonal plot captures the difference between our observed number of trips and the general trend of number of trips for our two user types. The subscriber plot tends to be much choppier as the number of subcribers tends to change more often and more extremely than the number of customers. The irregular plot captures any irregularity in data for both customers and subscribers, we see that there is a lot of irregularity for customers around the time the pandemic began, while there is more general irregularity for subscribers in the other months.]**
+
+
+***
+***
+
+
+# Problem 5: Survey [3 pts]
+
+How long would you estimate you spent, in total, working on this assignment?
+
+**[4 hours]**
+
+

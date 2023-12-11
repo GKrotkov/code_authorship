@@ -1,0 +1,349 @@
+---
+title: "36-315 Lab Exam, Fall 2023"
+author: "Noelani Phillips"
+output:
+  pdf_document:
+    toc: no
+  html_document:
+    toc: yes
+    toc_float: yes
+    code_folding: show
+---
+
+# Lab exam instructions: READ THIS
+
++ The format of the exam is identical to that of the homework: you'll do everything in RStudio and turn in a PDF on Gradescope.
+
++ During the exam, you are NOT allowed to talk with peers about 36-315 material.  You can post clarifying questions on Piazza, but questions on the substantive issues posed by the exam will be unlikely to receive help.  Regardless, all Piazza posts should be made private until Thursday.  You will be asked to sign an academic integrity statement below - you must sign this statement to receive any credit for the exam.
+
++ If you have clarifying questions about the exam, you can also come to my office hours (normal class time, but in Baker Hall, 132M1).
+
++ Although you can't talk with peers, the exam is still "open everything."  Remember that you can always refer back to previous homework/lab solutions, lectures, and R demos.  The class materials provide __everything__ you need to complete the exam.  Obviously, you are free to use the internet but, as is always the case, it may cause more confusion than it alleviates. 
+
++ **Throughout the exam, include all the R code you used to arrive at your answers.**  For example, if you choose to run a statistical analysis or make a graph, you should include the code that runs that analysis or makes that graph.  This is equivalent to "showing your work" in other classes - if you don't show your work, we won't know how you arrived at your answers (which makes giving partial credit nearly impossible if something did go wrong in the process).
+
++ __For the entirety of this exam, all figures you generate should be appropriately titled, labelled, colored, etc., to make them as clear as possible.  If a crucial figure has an ambiguous/unclear label, it will likely be penalized.__
+
++ For the purpose of this exam, a graph or statistical test, by itself, does not answer a question; an answer to a question will take the form of a written explanation referring to what is demonstrated by the graph or test; the two work hand-in-hand.
+
+
+***
+***
+
+
+# Academic Integrity Statement: 
+# SIGN TO RECEIVE CREDIT FOR EXAM
+
+"By writing my name below, I certify that I have not talked with anyone other than Dr. Koerner about 36-315 material during the 6:00pm Tuesday, October 10 to 11:59pm Wednesday, October 11 window."
+
+**Noelani Phillips**
+
+
+***
+***
+
+
+#  Data: Canadian Olympic Athletes
+
+For this exam you'll work with a dataset curated by the [#TidyTuesday project](https://github.com/rfordatascience/tidytuesday/blob/master/data/2021/2021-07-27/readme.md) containing information about Olympic athletes.  The following code reads in the dataset and filters it to only include athletes competing for Canada (CAN), selecting a subset of the columns, and tidies up the medal columns you will use throughout the exam:
+
+```{r, echo = FALSE}
+library(tidyverse)
+can_olympics <- read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-07-27/olympics.csv') %>%
+  filter(noc == "CAN") %>%
+  dplyr::select(-team, -noc) %>%
+  mutate(won_medal = as.numeric(!is.na(medal)),
+         medal = ifelse(is.na(medal), "None", medal))
+```
+*N.B.  I have no reason to think this is likely, but if, for some reason, you are encountering an error reading in the data with the code above, e-mail me ASAP.*
+
+The dataset contains information on the performance of Canadian Olympic athletes.  Each row corresponds to a unique athlete-event combination for a particular year (there are 9,733 in total).  This means that athletes are repeated throughout the dataset but we will ignore that detail for the exam.  We often have information about the athlete, like their height, weight, age, and sex.  We also have information about the Olympics event they competed in, including the year, season, and the event outcome for the athlete in terms of their medal placement (if any).  You will focus on the following variables for this exam:
+
++ `year`: The year that the Olympics occurred.
+
++ `season`: Type of Olympic games: Summer or Winter.
+
++ `height`: Athlete height in cm.
+
++ `sex`: Athlete's reported sex.
+
++ `medal`: The result for the athlete in the particular event, either: None (they didn't win a medal), Bronze, Silver, or Gold.
+
++ `won_medal`: Indicator variable denoting whether or not the athlete won a medal for the event (0 = no, 1 = yes, regardless of which type of medal).
+
+
+***
+***
+
+
+# Prelude: Categorizing Variables
+
+Before you dive into this exam, it will be helpful to make sure that you understand the nature of the variables of interest, so answer the following questions:
+
++ Of the six variables in this dataset listed above (`year`, `season`, `height`, `sex`, `medal`, `won_medal`), which are nominal categorical variables?
+
+**sex, and season are nominal categorical variables**
+
++ Which variables are ordinal categorical variables?
+
+**medal is an ordinal categorical variable**
+
++ Which variables are discrete quantitative variables?
+
+**won_medal is a discrete quantitative variable. height may be considered either discrete or continuous depending on how you look at it.**
+
+After you've answered the above questions, write code that converts the `won_medal` variable to be a factor and reorder the `medal` variable such that it is in order of `None`, `Bronze`, `Silver`, and `Gold`.  Then proceed to the rest of the exam.
+
+```{r}
+can_olympics <- can_olympics %>% mutate(won_medal = factor(won_medal))
+can_olympics <- can_olympics %>%
+  arrange(factor(medal, levels = c('None', 'Bronze', 'Silver', 'Gold')))
+
+```
+
+
+***
+***
+
+
+# Substantive Questions: Trends and Relationships
+
+My question to you is this: __how have Canadian athletes performed at the Olympic games throughout history and what supplementary information is related to their success, and any evolution thereof, over time?__
+
+Tell me what you think I should know.  Better yet, *show me*.  I currently consider my knowledge to be lacking, but as prompts to point you in the right direction, I would only consider my knowledge of this question reasonably complete after learning a few specific things:
+
+__1.__ How does the proportion of Canadian athletes that won a medal change over history?
+  
+__2(a).__ Do Canadian athletes tend to be more dominant in Summer or Winter games?
+  
+__2(b).__ Are `medal` and `season` independent?  What is the nature of any potential dependence?
+  
+__3(a).__ Does the `height` of athletes tend to differ between medal winners and those that did not win a medal?
+  
+__3(b).__ Does the distribution of `height` tend to differ between the different types of medal winners?
+  
+__4.__ Can we reasonably say `year` and `height` are marginally linearly related; what about when conditional upon `sex`?
+
+
+***
+***
+
+
+# Narrowing the Questions, in a Lab-like Style:
+
+*N.B. For those of you who don't have practice writing data analysis reports, the simplest way to address the sub-questions above would be to further break down which tools and details go into the visualization and analysis of each one; I've done so below, and you can treat what follows as a lab-style interpretation of the above sub-questions, and use this scaffold, or proceed unconstrained, simply making sure you touch on all the points explicitly raised.  (In either case, you may want to occasionally refer back to the original sub-questions to make sure you stay on target.)*
+
+***
+
+__1.__ Make a graph which best shows the marginal distribution of `year`, and on which one can assess, for any given year, the proportion of athletes that won a medal.  For the `won_medal` variable, the graph should use the labels "Yes" and "No" instead of just 1 and 0. 
+
+```{r}
+year_won <- can_olympics %>%
+  group_by(year, won_medal) %>%
+  summarize(proportion = n()/length(can_olympics$year))
+year_won %>% 
+  ggplot(aes(x = year, y = proportion, 
+             fill = factor(won_medal, labels = c("No", "Yes")))) + 
+  geom_bar(stat = "identity") +
+  labs(title = "Distribution of Year and Medals Won", x = "Year", 
+       y = "Proportion of athletes", fill = "Medal Won?")
+
+```
+
+Using the graph, describe the distribution of `year`.  In particular, does the distribution have any distinct characteristics?  If so, give an explanation why this characteristic(s) occurs (using the knowledge that this is data on the Olympics).  What is the range of years that we have data on?  Are there any years that we don't have data on?
+
+**The distribution of year has a significant left skew, more Canadian athletes competed in the later years as the Olympics as an institution got bigger and started offering more sports/accepting more people. The range of years we have goes from 1900 to 2016,but we don't have data on the 1916, 1940, and 1944 probably because of World Wars since the games didn't happen those years.**
+
+Does it seem like the __proportion__ of medal winners for CAN is increasing over time?  Make sure to give an explanation for how you arrived at your answer using your graph.
+
+**Maybe slightly. Comparing the length of the blue bar to the red bar, we can see that the proportion of wins has increased a little bit as indicated by the blue bar taking up more of the overall bar than before. However, it is hard to tell just by eyeballing the graph.**
+
+Conduct a **statistical test** that lets you assess whether the `year` is larger (thus later in time or more recent) for athletes that won medals (`won_medal = 1`) in comparison to the `year` for athletes that did NOT win models (`won_medal = 0`).  Discuss how your test allows you to assess this.  State the hypotheses of the test, report a p-value, and your conclusion from the test.
+
+```{r}
+won_year = filter(can_olympics, won_medal == "1")$year
+lost_year = filter(can_olympics, won_medal == "0")$year
+t.test(won_year, lost_year)
+
+```
+
+**H0: The mean year for athletes that won medals is the same as the mean year for athletes who did not win medals H1: The mean year for athletes that won medals is greater the mean year for athletes who did not win medals. The p-value of 1.681e-05 is less than significance level of 0.05, so we reject the null and conclude that the mean year is greater for athletes who won medals.**
+
+***
+
+__2(a).__ For this part, first create a new dataset, `can_olympics_medals`, that __only includes athletes that won medals__. 
+
+```{r}
+can_olympics_medals <- filter(can_olympics, won_medal == "1")
+```
+
+Now, using `can_olympics_medals`, make a graph that you believe best visualizes the marginal distribution of `medal` and the conditional distribution of `season` given `medal`.  Be sure that `medal` is displayed in a sensible order in your graph.  Describe the marginal distribution of `medal`, the conditional distribution of `season` given `medal`, and the conditional distribution of `medal` given `season`.
+
+```{r}
+medal_season <- can_olympics_medals %>%
+    group_by(medal, season) %>%
+  summarize(count = n())
+
+ medal_season %>%
+  ggplot(aes(x = medal, y = count, fill = season)) +
+  geom_bar(stat = "identity") + 
+   labs(title = "Number of Each Type of Medal, colored by Season Won", 
+        x = "Medal Type", y = "Number of Medals Won")
+```
+
+**Slightly more Gold medals are won than than bronze, and slightly more bronze medals are won than silver. Overall however, the amount of each type of medal won seems pretty even. A higher proportion of gold medals came from winter athletes, a higher proportion of bronze medals won came from summer athletes, and the proportions of silver medals from each season were about the same. Given the summer season, the majority of medals came from bronze winners, then silver, then gold and given that the winter season, the majority of medals came from gold winners, then silver, then bronze.**
+
+***
+
+__2(b).__ Before proceeding to answer this sub-question, you'll want to drop the `None` factor level from the `medal` column (since there are no athletes in this subset of data that have `None` for `medal`).  You can do this with the `fct_drop()` function (i.e., uncommenting the following code):
+
+```{r}
+can_olympics_medals <- can_olympics_medals %>%
+   mutate(medal = fct_drop(medal, "None"))
+```
+
+Now use a **statistical test** to answer the question: are `medal` and `season` independent?
+
+```{r}
+tab2b <- table(can_olympics_medals$medal, can_olympics_medals$season)
+chisq.test(tab2b)
+```
+
+**Given the p-value of less than 2.2e-16, which is less than the significance level alpha, I conclude that there is enough evidence to reject the null hypothesis that medal and season are independent from each other and conclude that they are dependent.**
+
+Now use a **statistical visualization** to answer the question: which types of medal winners had an unusually high (or low) count, if any, in a particular type of Olympics season.
+
+```{r}
+mosaicplot(tab2b, 
+           main = "Mosaic Plot grouping Medal Type by Season Won", shade = TRUE)
+```
+
+**Summer bronze medal winners and winter gold medal winners had an unusually high count. Winter bronze medal winners and summer gold medal winners had unusually low counts.**
+
+***
+
+
+__3(a).__ Make a graph that allows you to best answer the question.  For the `won_medal` variable, use the labels "Yes" and "No" instead of just 1 and 0.
+
+```{r}
+ggplot(data = can_olympics, aes(x=height, y = won_medal)) + 
+  geom_boxplot(aes(fill = won_medal), alpha =1) +
+labs(title = "Boxplot of Athlete Heights Hactored by Whether a Medal Was Won", 
+     x = "Height in cm", y = "") + scale_fill_discrete(labels=c('No', 'Yes'))
+  
+
+```
+
+Run the most appropriate statistical test that complements your graph and allows you to answer the question.  Pick it given what you see in your graph.
+
+```{r}
+oneway.test(height ~ won_medal, data = can_olympics)
+```
+
+Using your graph and statistical test, answer the question.
+
+**Looking at the boxplot, we notice that the means of the two groups seem quite similar. However, the spread of heights for athletes who won did not win medals is much larger than those who did, indicating that there may be a difference in means regardless. The p-value of the one-way analysis of means test is 2.862e-05, which is less than the significance level alpha=0.05, indicating that we reject the null that height of athletes that won medals is the same as the height of athletes that didn't and instead conclude that the heights are different between the two groups.**
+
+***
+
+__3(b).__ Make a graph that allows you to best answer the question.  *Hint*: for the `medal` variable, consider using `scale_color_manual()` or `scale_fill_manual()`, depending on your choice of graph, so that the graph features colors that match the category levels.  For example, a very natural set of choices would be: for `Bronze` use `"#E69F00"`, for `Silver` use `"gray"`, and for `"Gold"` use `"gold"`.
+
+```{r}
+can_olympics_medals %>%
+  ggplot(aes(x = height)) +
+  stat_ecdf(aes(color = medal)) +
+  labs(title = "ECDF of heights for different types of medals",
+       x = "Height", y = "Fn(x)") + 
+  scale_color_manual(breaks=c("Bronze","Silver","Gold"),
+                     values=c("#E69F00","gray","gold")) + 
+  theme_bw()
+```
+
+Run __three__ appropriate statistical tests - that are the exact same type of test - that complement your graph and allows you to answer the question.  Pick the type of test that you think is most appropriate, given what you see in your graph. 
+
+```{r}
+bronze_height <- (filter(can_olympics_medals, medal == "Bronze"))$height
+silver_height <- (filter(can_olympics_medals, medal == "Silver"))$height
+gold_height <- (filter(can_olympics_medals, medal == "Gold"))$height
+ks.test(bronze_height, y = silver_height)
+ks.test(bronze_height, y = gold_height)
+ks.test(silver_height, y = gold_height)
+alpha = 0.05
+alpha_corrected = alpha/3
+alpha_corrected
+```
+
+Using your graph and statistical tests, answer the question.  And remember to correct for multiple testing!  
+
+**Looking at the ECDFs, we notice that the curves look visually different for each distribution, especially the bronze and gold curves, indicating that these distributions may be different. The above tests have determined that there is a difference in the distribution of heights between bronze winners and gold winners. However, the tests and graph were not able to detect a different in distribution of heights between silver and gold winners or between bronze winners and silver winners. Due to the corrected alpha being 0.016667, the p-value for a difference among distribution of heights between bronze and silver winners now falls above the significance level, meaning that we cannot deduce a difference.**
+
+***
+
+__4.__ For this part, you'll want to make a graph that does the following:
+
++ Displays `year` on the x-axis and `height` on the y-axis (*consider why we might choose x and y like this*), making sure to avoid potential information overload.
++ Displays the *linear trend* between `year` and `height`, along with a 99% confidence interval on a conditional expectation.
+
+```{r}
+can_olympics %>% ggplot(aes(x=year, y=height)) + geom_point(alpha = 0.5) + 
+  geom_smooth(method = "lm", level = 0.99) + 
+  labs(title = "Scatterplot of height vs year with 99% Confidence Interval")
+
+```
+
+Describe the relationship you observe between the `height` and `year` based on the displayed regression line.
+
+**Based on the flatness of the displayed regression line, it seems like height and year have no linear relationship.**
+
+Do any of the assumptions we make for linear regression appear to be violated based on your plot?  (*You do not need to turn in a residual-versus-fit plot to answer this question.*)
+
+**Yes, it seems like the equal variance assumption is violated because as year increases, the height data points stray further from the regression line indicating that height varies more in more recent years.**
+
+Then, make a graph that does the following:
+
++ Displays `year` on the x-axis, `height` on the y-axis, and color by `sex`, again, avoiding over-plotting.
++ Displays the *linear trend* between `year` and `height` with separate lines by `sex` mapped via color, along with 99% confidence intervals.
+
+```{r}
+can_olympics %>% ggplot(aes(x=year, y=height, color = sex)) + 
+  geom_point(alpha = 0.5) + 
+  geom_smooth(method = "lm", level = 0.99) + 
+  labs(title = "Scatterplot of height vs year by sex with 99% Confidence Interval")
+```
+
+Then, run the linear regression analysis that you just visualized.  Write code that displays regression coefficient estimates and p-values. 
+
+```{r}
+linear_model <- lm(height ~ year * sex, data = can_olympics)
+out <- summary(linear_model)
+out
+print("beta0")
+out$coefficients[1,1]
+print("betaYear")
+out$coefficients[2,1]
+print("betaM")
+out$coefficients[3,1]
+print("interaction coefficient")
+out$coefficients[4,1]
+print("p-values")
+out$coefficients[,4]
+
+```
+
+For the last graph, explain whether the intercepts of the two lines were significantly different, and how you arrived at your conclusion.
+
+**The intercepts of the two lines are significantly different as indicated by the p-value corresponding to the categorical indicator by itself (0.0107), which is less than the significance level 0.05, indicating that we reject the hypothesis that the intercept of the two lines are the same.**
+
+Again, for the last graph, explain whether the slopes of the two lines were significantly different, and how you arrived at your conclusion.
+
+**The slope of the two lines are not significantly different, which can be deduced by the p-value (0.0533) of the coefficient indicating the interaction coefficient. Given a standard significance level of 0.05, we fail to reject the null under this case that the slopes between Men and Women are the same and conclude that they are.**
+
+Do any conclusions from this regression analysis seem to contradict any conclusions you made when initially examining the relationship while marginalizing over `sex`? 
+
+**No, looking at the graph you can deduce that the slopes look very similar but the intercepts are different. There are no contradictions.**
+
+Elaborate on the utility and generalizability of your model a bit: are the intercepts meaningful in this context?  Would you feel comfortable using this regression model to predict CAN Olympic athlete height in the year 3005?
+
+**The intercepts are not super meaningful, it doesn't make sense to predict the height of someone who competed in the year 0 and I don't imagine that humans were that much shorter back then as the slope of the line would suggest were we to find the intercept. I would not feel comfortable using this model to predict someone's height 1000 years from now because human evolution cannot necessarily be plotted in a linear way, and there is no way to be able to tell if we'll be taller at all in the future, much less how much taller.**
+
+

@@ -1,0 +1,166 @@
+---
+title: "315 Final Project Graphs"
+author: "Noe Phillips"
+date: "2023-12-07"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#loading necessary packages
+
+library(countrycode)
+library(tidyverse)
+library(ggnewscale)
+library(ggplot2)
+library(ggseas)
+library(geomtextpath)
+library(ggsoccer)
+library(scatterpie)
+library(reshape2)
+```
+
+```{r}
+#reading in and cleaning the data
+
+futbol = read_csv2("./2021-2022 Football Player Stats.csv")
+extra_match = c("Africa", "Africa", "Europe", "Africa", "Africa", "Americas", "Americas", "Europe", "Africa", "Europe", "Europe", "Africa", "Africa", "Europe", "Europe", "Americas", "Africa", "Americas", "Europe", "Africa", "Europe", "Europe", "Americas", "Asia", "Europe", "Africa", "Europe", "Europe", "Africa", "Americas", "Europe", "Africa", "Africa")
+names(extra_match) = c("ALG", "ANG", "BUL", "CGO", "CHA", "CHI", "CRC", "CRO", "CTA", "DEN", "ENG", "EQG", "GAM", "GER", "GRE", "GRN", "GUI", "HON", "KVX", "MAD", "NED", "NIR", "PAR", "PHI", "POR", "RSA", "SCO", "SUI", "TOG", "URU", "WAL", "ZAM", "ZIM")
+
+extra_match2 = c("Algeria", "Angola", "Bulgaria", "Congo", "Chad", "Chile", "Costa Rica", "Croatia", "Central African Republic", "Denmark", "England", "Equatorial Guinea", "Gambia", "Germany", "Greece", "Grenada", "Guinea", "Honduras", "Kosovo", "Madagascar", "Netherlands", "Northern Ireland", "Paraguay", "Philippines", "Portugal", "South Africa", "Scotland", "Switzerland", "Togo", "Uruguay", "Wales", "Zambia", "Zimbabwe")
+names(extra_match2) = c("ALG", "ANG", "BUL", "CGO", "CHA", "CHI", "CRC", "CRO", "CTA", "DEN", "ENG", "EQG", "GAM", "GER", "GRE", "GRN", "GUI", "HON", "KVX", "MAD", "NED", "NIR", "PAR", "PHI", "POR", "RSA", "SCO", "SUI", "TOG", "URU", "WAL", "ZAM", "ZIM")
+futbol$Continent = countrycode(futbol$Nation, "iso3c", "continent", custom_match = extra_match)
+
+
+futbol$Country = countrycode(futbol$Nation, "iso3c", "country.name", custom_match = extra_match2)
+simpPos = function (x) {
+  if (x == "MFFW") {
+    return ("MF")
+  } else if (x == "FWMF") {
+    return ("FW")
+  } else if (x == "DFMF") {
+    return ("DF")
+  } else if (x == "FWDF") {
+    return ("FW")
+  } else if (x == "MFDF") {
+    return ("MF")
+  } else if (x == "DFFW") {
+    return ("DF")
+  } else if (x == "GKMF") {
+    return ("GK")
+  } else {
+    return (x)
+  }
+}
+futbol$ShoDist = futbol$ShoDist/10
+futbol$Pos_simplified = sapply(futbol$Pos, FUN = simpPos)
+
+world = map_data("world")
+
+conditions <- c("USA")
+replacement_values <- c("United States")
+world$region <- replace(world$region, world$region %in% conditions, replacement_values)
+
+
+futbol$Goals = as.numeric(futbol$Goals)
+futbol$`G/SoT` = as.numeric(futbol$`G/SoT`)
+futbol$Shots = as.numeric(futbol$Shots)
+
+
+noGoalie = filter(futbol, Pos_simplified=="DF" | Pos_simplified=="FW" | Pos_simplified == "MF")
+noGoalieorZero = filter(noGoalie, ShoDist!=0)
+
+
+meanDF = median(filter(futbol, Pos_simplified== "DF")$ShoDist)
+meanFW = median(filter(futbol, Pos_simplified== "FW")$ShoDist)
+meanMF = median(filter(futbol, Pos_simplified== "MF")$ShoDist)
+meanGK = median(filter(futbol, Pos_simplified== "GK")$ShoDist)
+
+
+
+```
+
+
+
+## Graph #1
+```{r}
+noGoalieorZero %>% ggplot(aes(x = ShoDist)) +
+geom_density(aes(fill = Pos_simplified), alpha = 0.5, adjust = 1) +
+  scale_fill_discrete(name = "Position", labels = c("Defender", "Forward", "Midfielder")) + 
+  labs(title = "Distribution of Shot Distance across Player Position", x = "Shot Distance (Yards)", y = "Density")
+```
+The above graph plots the density curves of the average distance players shot from, grouped into their respective positions. At a high level, we can see that players tend to be in the same ballpark in terms of shot distance regardless of player position. There are three mean peaks around 10-20 yards and another smaller peak for each group around 0-5 yards. It is reasonable to believe that the goal accuracy would increase the closer one gets to the goal, so the fact that the earlier peak is much smaller may seem counter-intuitive. However, opponent defense may prevent a player from getting as close to the goal as they want or they may strategically choose to shoot from further, so the existence of the large later peaks is not too surprising. What is curious however,is the distribution of defender shot distance. Generally, we expect these players to shoot less often than their counterparts, however it appears that the curve is more spread out and peak slightly earlier than forwards.
+
+
+## Graph #2 
+
+```{r}
+world = filter(world, is.na(subregion))
+average_long = world %>% 
+  group_by(region) %>% 
+  summarise("average long" = mean(long))
+
+average_lat = world %>% 
+  group_by(region) %>% 
+  summarise("average lat" = mean(lat))
+colnames(average_lat) = c("Country", "lat")
+colnames(average_long) = c("Country", "long")
+
+futbol = merge(futbol,average_lat, "Country")
+futbol = merge(futbol, average_long, "Country")
+
+aggregate = futbol %>% 
+  group_by(Comp, Country, long, lat) %>% 
+  summarize(NumPlayers=sum(Country==Country))
+
+```
+
+```{r}
+ggplot() +
+  geom_map(data=world, map=world, aes(x=long, y=lat, map_id=region), color="grey", fill="white") +
+  geom_point(data=aggregate, mapping=aes(x=long, y=lat, color=Comp, size=NumPlayers)) +
+  labs(title="Players' Nationalities by League") + xlab("Longitude") + ylab("Latitude") + scale_size(range=c(1,3),
+             breaks=c(5,50,100,250),
+             labels=c("<10","<50", "<100", ">=100"),
+             name = "Number of Players",
+             guide="legend") +  scale_color_manual(values = c("Bundesliga" = "red", "La Liga" = "chocolate", "Ligue 1" = "forestgreen", "Premier League" = "deepskyblue", "Serie A" = "purple"))
+
+```
+This map of the 2568 players' nationalities visually breaks down which countries are represented in the five leagues in the dataset. The color of a point represents the league the players belong to, and the size of a point represents the aggregate number of players of a given nationality. The main takeaway from this graph is that, while players have diverse nationalities, a large portion of players have some kind of European nationality, as expected. Very little players have nationalities in Oceania or North America, with slightly more in South America and even more in Africa likely due to its proximity to Europe. We can also see that Series A and Premier League are reflected in a multitude of countries, whereas Ligue 1 and La Ligua tend to be comprised of South American and African countries, and Bundesliga seems to come almost exclusively from a few select European Countries.
+
+```{r}
+ggplot() +
+  geom_map(data=world, map=world, aes(x=long, y=lat, map_id=region), color="grey", fill="white") +
+  geom_point(data=aggregate, mapping=aes(x=long, y=lat, color=Comp, size=NumPlayers)) +
+  labs(title="Players' Nationalities by League (Europe)") + xlab("Longitude") + ylab("Latitude") + scale_size(range=c(1,7),
+             breaks=c(5,10,100,250,400),
+             labels=c("0-5","6-10", "10-100", "100>", "251-400"),
+             name = "Number of Players",
+             guide="legend") +  coord_cartesian(ylim=c(30,72), xlim=c(-10,35)) + scale_color_manual(values = c("Bundesliga" = "red", "La Liga" = "chocolate", "Ligue 1" = "forestgreen", "Premier League" = "deepskyblue", "Serie A" = "purple"))
+
+
+
+```
+Narrowing down the map to European Countries, we can get a beter idea about the number of players than our world map. We see that La Liga players tend to primarily have a Spanish nationality, Ligue 1 players tend to primarily have a french Nationality, and BundesLiga players tend to primarily have a German, Austrian, or Hungarian nationality. Further, we see that while the majority of European Serie A players have an Italian nationality, the distribution is spread out across many European countries. 
+
+```{r}
+futbol$TotalTkl = as.numeric(futbol$TklAtt3rd) + as.numeric(futbol$TklMid3rd) + as.numeric(futbol$TklDef3rd)
+futbol$TotalTou = as.numeric(futbol$TouAtt3rd) + as.numeric(futbol$TouMid3rd) + as.numeric(futbol$TouDef3rd)
+
+futbol_nonzero = filter(futbol, TotalTkl>0 & TotalTou>0)
+tackle_stats = futbol_nonzero %>% 
+  group_by(Pos_simplified) %>% 
+  summarize(TklAtt= sum(as.numeric(TklAtt3rd)), TklMid = sum(as.numeric(TklMid3rd)),TklDef= sum(as.numeric(TklDef3rd)), TouAtt= sum(as.numeric(TouAtt3rd)), TouMid= sum(as.numeric(TouMid3rd)), TouDef= sum(as.numeric(TouDef3rd)) )
+
+
+tackle.long<-melt(tackle_stats)
+tackle.long$Zone = c("Attacking 1/3", "Attacking 1/3", "Attacking 1/3", "Attacking 1/3", "Middle 1/3", "Middle 1/3", "Middle 1/3", "Middle 1/3", "Defensive 1/3", "Defensive 1/3", "Defensive 1/3", "Defensive 1/3")
+tackle.long$Type = c("Tackles", "Tackles","Tackles","Tackles","Tackles","Tackles","Tackles","Tackles","Tackles","Tackles","Tackles","Tackles", "Touches","Touches","Touches","Touches","Touches","Touches","Touches","Touches","Touches","Touches","Touches","Touches")
+ggplot(tackle.long,aes(Pos_simplified,value,fill=Pos_simplified))+
+     geom_bar(stat="identity",position="dodge") + facet_wrap(~Type+Zone, scales="free") + scale_fill_discrete(name = "Position", labels = c("Defender", "Forward", "Goalkeeper", "Midfielder")) + labs(title="Total Player Touches and Tackles by Zone and Position") + xlab("") 
+```
+This grouped and faceted bar graph examines the number of touches and tackles that players of different positions get in the three zones on a soccer field. Here, a tackle is defined as the taking away of the ball from the feet of an opponent by a player. In this way, the number of tackles is included in the number of touches a player gets. While one purpose of this graph is to examine how touches are distributed across the different positions, it also serves to show us which types of players dominate in certain zones of the field. As expected, we see that the players who are meant to play primarily in a given third of the field tend to get the most touches on the ball. However, the breakdown of tackles is slightly more interesting. Most notably, we notice that midfielders have a comparatively high performance in all areas of the field, whereas the number of tackles that defensive and forward players get tends to decrease the further they get from their assigned zone. Still, while the number of tackles achieved by defensive players in the attacking third is quite close to that of forward players, the number of tackles achieved by forward players in the defensive zone is much smaller than that of defensive players. One additional piece of information gleaned by this graph is that the number of touches in the attacking zone by forwards and midfielders are very similar but the number of tackles by midfielders is higher, indicating that midfielders tend to play a more defensive role in the attacking zone.
+
