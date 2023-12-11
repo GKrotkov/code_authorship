@@ -10,8 +10,8 @@ id_gen <- function(n = 1) {
 }
 
 # Change these inputs!
-input_dir <- "data/code_authorship/inputs/gkrotkov"
-output_dir <- "data/code_authorship/outputs"
+input_dir <- "data/inputs/nphillip"
+output_dir <- "data/outputs"
 
 filenames <- list.files(input_dir)
 filepaths <- paste(input_dir, filenames, sep = "/")
@@ -19,10 +19,7 @@ filepaths <- paste(input_dir, filenames, sep = "/")
 purl_filepaths_to_R <- function(filepaths, output_dir, subfolder = ""){
     target_path <- paste(output_dir, subfolder, sep = "/")
     target_paths <- paste0(target_path, "/file", 1:length(filepaths), ".R")
-    for (i in 1:length(filepaths)){
-        knitr::purl(filepaths[i], 
-                    target_paths[i])
-    }
+    mapply(knitr::purl, filepaths, target_paths)
 }
 
 # code that assumes the 401/402 data analysis exam structure
