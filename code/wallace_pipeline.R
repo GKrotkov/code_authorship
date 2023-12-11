@@ -127,7 +127,7 @@ accuracy_list <- c()
 pca_info <- data.frame(author_id = character(0))
 
 # Number of authors
-author_num <- 7
+author_num <- 8
 
 accuracy_list <- c()
 
@@ -263,5 +263,5 @@ rownames(pca_info) <- pca_info$author_id
 pca_info$author_id <- NULL
 pca_info[is.na(pca_info)] <- 0
 # save the PCA dataframe
-save(pca_info, file = "../data/pca_df.rda")
+save(pca_info, file = "../data/pca_info.rda")
 mean(accuracy_list)

@@ -4,11 +4,17 @@ library(nFactors)
 library(factoextra)
 source("cmu_textstats/mda_functions.R")
 
-load("../data/inputs/pca_test_chunk.rda")
+load("../data/pca_info.rda")
 
 # Create pairwise_loadings dataframe
 # need to find a way to tag each comparison as being individual vs group, etc
-pairwise_loadings <- df_biber
+pairwise_loadings <- pca_info
+rm(pca_info)
+comparisons <- gsub("[0-9_]", "", rownames(pairwise_loadings))
+comparison_type <- ifelse(comparisons == "group group", "group to group", 
+                          ifelse(comparisons == "individual individual", 
+                                 "individual to individual", 
+                                 "group to individual"))
 
 # Screeplot
 # use screeplot_mda()
@@ -18,11 +24,11 @@ screeplot_mda(pairwise_loadings)
 authorship_pca <- prcomp(pairwise_loadings, center = TRUE, scale. = TRUE)
 
 ggplot(data.frame(pc1 = authorship_pca$x[, 1], pc2 = authorship_pca$x[, 2], 
-                  text_type = pairwise_loadings$text_type), 
-       aes(x = pc1, y = pc2, color = text_type)) + 
+                  comp_type = comparison_type), 
+       aes(x = pc1, y = pc2, color = comp_type)) + 
     geom_point(alpha = 0.6) + 
     labs(x = "PC1", y = "PC2", 
-         title = "PCA on Biber-tagged loadings")
+         title = "PCA of Pairwise Comparisons")
 
 # Biplot
 
