@@ -50,7 +50,7 @@ replacements <- c(
   "~"      = " approximate_placeholder ",
   "\\.\\.\\." = " elipses_placeholder ",
   "\\."    = " period_placeholder ",
-  ","      = " comma_placeholder ",
+  ","      = " comma_placeholder "
 )
 
 reformat_text_R <- function(path, replacements){
