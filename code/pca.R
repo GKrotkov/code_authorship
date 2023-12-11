@@ -1,0 +1,6 @@
+library(tidyverse)
+library(quanteda)
+library(nFactors)
+library(factoextra)
+library(udpipe)
+source("cmu_textstats/mda_functions.R")

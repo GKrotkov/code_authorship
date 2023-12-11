@@ -1,0 +1,121 @@
+---
+title: "midterm"
+author: "Gabriel Krotkov"
+date: "2023-10-10"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r}
+library(tidyverse)
+library(quanteda)
+library(nFactors)
+library(factoextra)
+library(udpipe)
+source("../R/mda_functions.R")
+```
+
+```{r}
+data <- read.csv("../data/midterm_data/midterm_mini_intros.csv")
+```
+
+# UDPipe pseudobibeR
+
+Caution: time expensive operation!
+
+```{r}
+# Initialize the model
+# To download the model: udpipe_download_model(language = "english")
+ud_model <- udpipe_load_model("english-ewt-ud-2.5-191206.udpipe")
+
+# Parse the data and make a data frame
+ud_parse <- data.frame(udpipe_annotate(ud_model, 
+                                       x = data$text, doc_id = data$doc_id), 
+                       stringsAsFactors = FALSE)
+
+# Aggregate the tags from dependency structures and parts-of-speech
+df_biber <- biber_udpipe(ud_parse)
+
+save(data, ud_parse, df_biber, file = "../data/midterm_data/midterm_data.rda")
+```
+
+Correlation Matrix: 
+
+```{r}
+biber_cor <- cor(df_biber[-1], method = "pearson")  # drop doc_id bc not numeric
+corrplot::corrplot(biber_cor, type = "upper", order = "hclust", 
+         tl.col = "black", tl.srt = 45, diag = F, tl.cex = 0.5)
+```
+
+```{r scree plot}
+screeplot_mda(df_biber)
+```
+
+Looks like either 2 or 3 factors is the move. I'll pick 2 and err on the side of simpler.
+
+```{r}
+df_biber$text_type <- as.factor(c(rep("student", 100), 
+                                  rep("chatgpt", 100), 
+                                  rep("published", 100)))
+
+df_biber <- df_biber %>%
+  column_to_rownames(var = "doc_id") %>%
+  select(text_type, everything())
+
+mda <- mda_loadings(df_biber, n_factors = 2)
+```
+
+Biber stickplot: 
+
+```{r}
+mda.biber::heatmap_mda(mda, n_factor = 1)
+```
+
+# Try doing PCA and making a biplot
+
+Load Biber data, construct PCA dataset
+
+```{r}
+load("../data/midterm_data/midterm_data.rda")
+# store doc_id on the rownames
+df_biber <- df_biber %>%
+  column_to_rownames(var = "doc_id")
+
+# clean up the names somewhat
+# should probably use strsplit but that's going to be complicated, just don't 
+# run the code back to back
+colnames(df_biber) <- substr(colnames(df_biber), 6, nchar(colnames(df_biber)))
+
+biber_pca <- prcomp(df_biber,
+                    center = TRUE, scale. = TRUE)
+
+save(biber_pca, df_biber, data, ud_parse, 
+     file = "../data/midterm_data/midterm_data.rda")
+```
+
+
+```{r}
+ggplot(data.frame(pc1 = biber_pca$x[, 1], pc2 = biber_pca$x[, 2], 
+                  text_type = df_biber$text_type), 
+       aes(x = pc1, y = pc2, color = text_type)) + 
+  geom_point(alpha = 0.6) + 
+  labs(x = "PC1", y = "PC2", 
+       title = "PCA on Biber-tagged loadings")
+
+# this biplot is too busy, we'll try to simulate it with pca_var
+fviz_pca_biplot(biber_pca, label = "var", 
+                alpha.ind = 0.4, alpha.var = 0.75, labelsize = 3, 
+                col.var = "darkblue", repel = TRUE) + 
+  scale_color_gradient2(low = "white", mid = "blue", high = "red")
+
+fviz_contrib(biber_pca, choice = "var", axes = 1, top = 20)
+
+fviz_pca_var(biber_pca, select.var = list(contrib = 10), label = "var", 
+             col.var = "contrib", repel = TRUE) + 
+  scale_color_gradient2(low = "blue", high = "red")
+
+```
+
