@@ -265,3 +265,8 @@ pca_info[is.na(pca_info)] <- 0
 # save the PCA dataframe
 save(pca_info, file = "../data/pca_info.rda")
 mean(accuracy_list)
+
+ggplot(data.frame(acc = accuracy_list), aes(x = acc)) + 
+  geom_histogram(fill = "purple", color = "black", bins = 8) + 
+  labs(title = "Model Accuracy Scores") + 
+  theme_bw()
