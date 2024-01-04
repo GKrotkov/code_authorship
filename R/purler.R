@@ -1,4 +1,4 @@
-# extract_code.r
+# purler.R
 # goal: purl() out r code from student submissions, save it in a file with a 
 # coded name (unique and consistent, but not the andrewID input)
 library(knitr)
