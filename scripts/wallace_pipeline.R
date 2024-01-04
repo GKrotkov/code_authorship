@@ -4,6 +4,7 @@ library(tidyverse)
 library(glmnet)
 
 # Load in namespace phrases and remove punctuation
+get_namespaces()
 load("data/r_namespaces.rda")
 namespaces <- str_replace_all(namespaces, "[[:punct:]]", "")
 

@@ -1,0 +1,19 @@
+---
+title: "pca_motivation"
+author: "Gabriel Krotkov"
+date: "2024-01-04"
+output: pdf_document
+---
+
+$$
+LASSO_i \implies (\beta_{i, 1}, \beta_{i, 2}, ..., \beta_{i, p})
+$$
+
+$$
+\begin{bmatrix}
+\beta_{1, 1} & \beta_{1, 2} & ... & \beta_{1, p}\\
+\beta_{2, 1} & \beta_{2, 2} & ... & \beta_{2, p}\\
+... \\
+\beta_{n, 1} & \beta_{n, 2} & ... & \beta_{1, p}\\
+\end{bmatrix}
+$$
