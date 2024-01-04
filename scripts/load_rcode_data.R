@@ -1,8 +1,8 @@
-#source("rcode2txt.R")
+data_path <- "data"
 
-data_path <- "../data"
 authors <- c("group_1", "group_2", "group_3", "group_4",
              "individual_1", "individual_2", "individual_3", "individual_4")
+
 author_id <- rep(authors, each = 10)
 author_paths <- paste(data_path, "authors", authors, sep = "/")
 filenames <- c(mapply(list.files, author_paths))
