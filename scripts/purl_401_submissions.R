@@ -1,4 +1,6 @@
-source("purler.R")
+source("R/purler.R")
+
+# 401/402 data analysis structure is assumed ()
 
 sensitive_ids <- unique(sapply(strsplit(filenames, "_"), function(s) s[1]))
 new_ids <- id_gen(length(sensitive_ids))

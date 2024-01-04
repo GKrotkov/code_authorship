@@ -9,8 +9,8 @@ id_gen <- function(n = 1) {
   paste0(a, sprintf("%04d", sample(9999, n, TRUE)), sample(LETTERS, n, TRUE))
 }
 
-input_dir <- "401-code"
-output_dir <- "401-anonymized"
+input_dir <- "data/401-code"
+output_dir <- "data/401-anonymized"
 
 filenames <- list.files(input_dir, pattern = "*.Rmd$")
 
