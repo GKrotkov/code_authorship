@@ -13,7 +13,7 @@ get_namespaces <- function(pkgs = c("base", "utils", "stats", "ggplot2",
                            tofile = "data/r_namespaces.rda"){
     namespaces <- c()
     
-    for (i in 1:length(pkgs)){
+    for (i in seq_along(pkgs)){
         namespaces <- c(namespaces, get_namespace(pkgs[i]))
     }
     

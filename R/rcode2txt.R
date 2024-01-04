@@ -61,7 +61,7 @@ reformat_text_R <- function(path, replacements){
   
   text <-""
   
-  for (i in 1:length(script_lines)){
+  for (i in seq_along(script_lines)){
     text <- paste0(text, script_lines[i], " new_line_ph")
   }
   
