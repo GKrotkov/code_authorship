@@ -55,6 +55,13 @@ replacements <- c(
   ","      = " comma_ph"
 )
 
+#' Reformat Text
+#' 
+#' Function that takes a file of text and makes replacements for code 
+#' tokenization
+#' @param path filepath to input text data (like a .R file)
+#' @param replacements named vector, names the targets for replacements and
+#' the values the replacement values.
 reformat_text_R <- function(path, replacements){
   
   script_lines <- readLines(path)

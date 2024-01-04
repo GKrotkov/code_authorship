@@ -3,10 +3,12 @@
 # coded name (unique and consistent, but not the andrewID input)
 library(knitr)
 
-# id_gen from Alex Reinhart
+# Generate random noise for output names
 id_gen <- function(n = 1) {
-  a <- do.call(paste0, replicate(5, sample(LETTERS, n, TRUE), FALSE))
-  paste0(a, sprintf("%04d", sample(9999, n, TRUE)), sample(LETTERS, n, TRUE))
+    return(paste0(
+        do.call(paste0, replicate(5, sample(LETTERS, n, TRUE), FALSE)), 
+        sprintf("%04d", sample(1000:9999, n, TRUE)), 
+        sample(LETTERS, n, TRUE)))
 }
 
 input_dir <- "data/401-code"
@@ -20,6 +22,7 @@ file_authors <- sapply(strsplit(filenames, "_"), function(s) s[1])
 sensitive_ids <- unique(file_authors)
 new_ids <- id_gen(length(sensitive_ids))
 names(new_ids) <- sensitive_ids
+
 # attach an increasing number to the end of each file to ensure uniqueness
 target_names <- paste0(new_ids[file_authors], 1:length(file_authors), 
                        ".R")

@@ -21,7 +21,7 @@ text <- mapply(reformat_text_R, filepaths, MoreArgs = list(replacements))
 
 document_id <- paste("text", 1:length(text), sep = "")
 
-test_size <- 4  # selected by cross validation
+test_size <- 4 # treated as a hyperparameter, tuned to minimize CV error
 
 actual_authors_df <- data.frame(document_id, author_id)
 

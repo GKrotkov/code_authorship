@@ -85,8 +85,8 @@ fviz_pca_biplot(authorship_pca, label = "var",
                 col.var = "darkblue", repel = TRUE) + 
     scale_color_gradient2(low = "white", mid = "blue", high = "red")
 
-fviz_contrib(authorship_pca, choice = "var", axes = 1:8, top = 50, 
-             title = "Contribution to PCs 1-8")
+fviz_contrib(authorship_pca, choice = "var", axes = 1:9, top = 50, 
+             title = "Contribution to PCs 1-9")
 
 fviz_contrib(authorship_pca, choice = "var", axes = 1, top = 50, 
              title = "Contribution to 1st Principal Component")
@@ -95,5 +95,9 @@ fviz_contrib(authorship_pca, choice = "var", axes = c(3, 9), top = 50,
              title = "Contribution to PCs 3 and 9")
 
 fviz_pca_var(authorship_pca, select.var = list(contrib = 35), axes = c(3, 9),
+             label = "var", col.var = "contrib", repel = TRUE) + 
+    scale_color_gradient2(low = "blue", high = "red")
+
+fviz_pca_var(authorship_pca, select.var = list(contrib = 35), axes = c(1, 2),
              label = "var", col.var = "contrib", repel = TRUE) + 
     scale_color_gradient2(low = "blue", high = "red")

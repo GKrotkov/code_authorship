@@ -127,7 +127,7 @@ accuracy_list <- c()
 pca_info <- data.frame(author_id = character(0))
 
 # Number of authors
-author_num <- 8
+author_num <- length(authors)
 
 accuracy_list <- c()
 
@@ -139,7 +139,7 @@ for (i in 1:author_num) {
       # Get indices of authors' writings to be compared
       indices <- c((i*10-9):(i*10),(j*10-9):(j*10))
       
-      # Filter the data to only have selectrd authors
+      # Filter the data to only have selected authors
       code_meta <- code_meta_df[indices,]
       code_txt <- code_txt_df[indices,]
       actual_authors <- actual_authors_df[indices,]
@@ -207,7 +207,7 @@ for (i in 1:author_num) {
       #plot(cv_fit)
       #title(main="Sample Lasso Optimization Between Two Authors", line = 2.5)
       
-      # Get the model coeffictients as a dataframe
+      # Get the model coefficients as a dataframe
       coefs <- coef(cv_fit, s = "lambda.min") %>%
         as.matrix() %>%
         data.frame() %>%
@@ -239,11 +239,9 @@ for (i in 1:author_num) {
       results <- merge(results, actual_authors, by = "document_id")
       print(results)
       
-      # Determine the accuracy of the model
+      # Compute and store CV results
       accuracy <- sum(results$pred_author_id == results$author_id) / 
         nrow(results)
-      
-      # Store the accuracy in a list
       accuracy_list <- c(accuracy_list, accuracy)
       
       # Make sure model is not empty
@@ -267,7 +265,7 @@ save(pca_info, file = "data/pca_info.rda")
 mean(accuracy_list)
 
 ggplot(data.frame(acc = accuracy_list), aes(x = 1 - acc)) + 
-  geom_histogram(fill = "purple", color = "black", bins = 8) + 
+  geom_histogram(fill = "purple", color = "black", bins = 6) + 
   labs(title = "Cross Validation Error", 
        x = "Error") + 
   theme_bw()
