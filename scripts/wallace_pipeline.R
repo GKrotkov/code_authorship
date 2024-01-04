@@ -1,63 +1,62 @@
-#source("rcode2txt.R")
-#source("load_rcode_data.R")
+source("scripts/load_rcode_data.R")
 library(quanteda)
 library(tidyverse)
 library(glmnet)
 
 # Load in namespace phrases and remove punctuation
-load("../data/r_namespaces.rda")
+load("data/r_namespaces.rda")
 namespaces <- str_replace_all(namespaces, "[[:punct:]]", "")
 
 # Initial tokens chosen to be looked at for lasso
 mw_all <- c(
-  "space_placeholder",
-  "assign_arrow_left_placeholder",
-  "assign_arrow_right_placeholder",
-  "global_assign_arrow_left_placeholder",
-  "global_assign_arrow_right_placeholder",
-  "pipe_arrow_right_placeholder",
-  "pipe_arrow_left_placeholder",
-  "matching_operators_placeholder",
-  "matrix_multiplication_placeholder",
-  "outer_product_placeholder",
-  "magrittr_forward_pipe_placeholder",
-  "magrittr_backward_pipe_placeholder",
-  "kronecker_placeholder",
-  "integer_division_placeholder",
-  "default_value_placeholder",
-  "modulo_placeholder",
-  "namespace_placeholder",
-  "triple_colon_placeholder",
-  "comment_start_placeholder",
-  "hyphen_placeholder",
-  "plus_sign_placeholder",
-  "asterisk_placeholder",
-  "equal_sign_placeholder",
-  "backslash_placeholder",
-  "forwardslash_placeholder",
-  "single_quote_placeholder",
-  "double_quote_placeholder",
-  "exclamation_point_placeholder",
-  "dollar_sign_placeholder",
-  "at_symbol_placeholder",
-  "percent_symbol_placeholder",
-  "carrot_symbol_placeholder",
-  "and_symbol_placeholder",
-  "open_parentheses_placeholder",
-  "close_parentheses_placeholder",
-  "open_brace_placeholder",
-  "close_brace_placeholder",
-  "open_bracket_placeholder",
-  "close_bracket_placeholder",
-  "colon_placeholder",
-  "semicolon_placeholder",
-  "question_mark_placeholder",
-  "less_than_sign_placeholder",
-  "greater_than_sign_placeholder",
-  "grave_accent_placeholder",
-  "approximate_placeholder",
-  "period_placeholder",
-  "comma_placeholder",
+  "space_ph",
+  "assign_arrow_left_ph",
+  "assign_arrow_right_ph",
+  "global_assign_arrow_left_ph",
+  "global_assign_arrow_right_ph",
+  "pipe_arrow_right_ph",
+  "pipe_arrow_left_ph",
+  "matching_operators_ph",
+  "matrix_multiplication_ph",
+  "outer_product_ph",
+  "magrittr_forward_pipe_ph",
+  "magrittr_backward_pipe_ph",
+  "kronecker_ph",
+  "integer_division_ph",
+  "default_value_ph",
+  "modulo_ph",
+  "namespace_ph",
+  "triple_colon_ph",
+  "comment_start_ph",
+  "hyphen_ph",
+  "plus_sign_ph",
+  "asterisk_ph",
+  "equal_sign_ph",
+  "backslash_ph",
+  "forwardslash_ph",
+  "single_quote_ph",
+  "double_quote_ph",
+  "exclamation_point_ph",
+  "dollar_sign_ph",
+  "at_symbol_ph",
+  "percent_symbol_ph",
+  "carrot_symbol_ph",
+  "and_symbol_ph",
+  "open_parentheses_ph",
+  "close_parentheses_ph",
+  "open_brace_ph",
+  "close_brace_ph",
+  "open_bracket_ph",
+  "close_bracket_ph",
+  "colon_ph",
+  "semicolon_ph",
+  "question_mark_ph",
+  "less_than_sign_ph",
+  "greater_than_sign_ph",
+  "grave_accent_ph",
+  "approximate_ph",
+  "period_ph",
+  "comma_ph",
   "error",
   "else",
   "function",
@@ -245,7 +244,7 @@ for (i in 1:author_num) {
       
       # Store the accuracy in a list
       accuracy_list <- c(accuracy_list, accuracy)
-
+      
       # Make sure model is not empty
       if(nrow(coefs) != 0){
         # Store model coefficients as columns and add them to the PCA df
@@ -263,10 +262,11 @@ rownames(pca_info) <- pca_info$author_id
 pca_info$author_id <- NULL
 pca_info[is.na(pca_info)] <- 0
 # save the PCA dataframe
-save(pca_info, file = "../data/pca_info.rda")
+save(pca_info, file = "data/pca_info.rda")
 mean(accuracy_list)
 
-ggplot(data.frame(acc = accuracy_list), aes(x = acc)) + 
+ggplot(data.frame(acc = accuracy_list), aes(x = 1 - acc)) + 
   geom_histogram(fill = "purple", color = "black", bins = 8) + 
-  labs(title = "Model Accuracy Scores") + 
+  labs(title = "Cross Validation Error", 
+       x = "Error") + 
   theme_bw()
