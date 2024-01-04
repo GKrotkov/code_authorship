@@ -1,0 +1,17 @@
+Package: code_authorship
+Type: Package
+Title: Mosteller-Wallace Authorship Analysis of R Code
+Version: 0.1.0
+Author: Gabriel Krotkov, Zach Strennen
+Maintainer: Gabriel Krotkov gkrotkov@alumni.cmu.edu
+Description: More about what it does (maybe more than one line)
+    Use four spaces when indenting paragraphs within the Description.
+License: MIT License
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.2.3
+URL: https://github.com/GKrotkov/code_authorship
+BugReports: https://github.com/GKrotkov/code_authorship/issues
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
